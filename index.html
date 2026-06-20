@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Of Manyak</title>
+    <style>
+        body { background-color: #222; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .box { background: #333; padding: 20px; border-radius: 10px; max-width: 40px0px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        input { padding: 10px; width: 80%; border-radius: 5px; border: none; margin-bottom: 10px; }
+        button { padding: 10px 20px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        .stat { font-size: 18px; margin: 10px 0; font-weight: bold; }
+        .gold { color: #f1c40f; }
+        .elixir { color: #9b59b6; }
+    </style>
+</head>
+<body>
+
+    <h1>⚔️ Clash Of Manyak ⚔️</h1>
+    
+    <div id="login-box" class="box">
+        <h3>Köyüne Giriş Yap</h3>
+        <input type="text" id="username" placeholder="Kullanıcı Adı Yaz...">
+        <br>
+        <button onclick="oyunaGir()">Savaşa Katıl!</button>
+    </div>
+
+    <div id="koy-box" class="box" style="display: none;">
+        <h2>Şef <span id="koy-sahibi" style="color: #54a0ff;"></span> Köyü</h2>
+        <div class="stat gold">🪙 Altın: <span id="gold-txt">0</span></div>
+        <div class="stat elixir">🧪 İksir: <span id="elixir-txt">0</span></div>
+        <div class="stat">🏛️ Belediye Binası: <span id="th-txt">1</span>. Seviye</div>
+        <br>
+        <button onclick="madenleriTopla()">Madenleri Topla (Yenile)</button>
+    </div>
+
+    <script>
+        let aktifKullanici = "";
+
+        function oyunaGir() {
+            const isim = document.getElementById('username').value;
+            if(!isim) return alert("Bir isim yaz!");
+            aktifKullanici = isim;
+            verileriCek();
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('koy-box').style.display = 'block';
+        }
+
+        function verileriCek() {
+            fetch(`/play?username=${aktifKullanici}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('koy-sahibi').innerText = data.username;
+                document.getElementById('gold-txt').innerText = data.gold;
+                document.getElementById('elixir-txt').innerText = data.elixir;
+                document.getElementById('th-txt').innerText = data.town_hall;
+            });
+        }
+
+        function madenleriTopla() {
+            verileriCek();
+        }
+    </script>
+</body>
+</html>
