@@ -180,12 +180,11 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // KRAL (Savaşçı) Kaplamaları - Yeni fotoğraf
+        // KRAL (Savaşçı) Kaplamaları
         const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
         const tKralArka = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
-        const tKralKilic = textureLoader.load('https://r.resimlink.com/lroVaDEBn2KT.png');
 
-        // KRAL OKÇU Kaplamaları - Yeni fotoğraf
+        // KRAL OKÇU Kaplamaları
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
         const tOkcuArka = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
 
@@ -315,7 +314,7 @@
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
-                // KRAL - Ön ve arka
+                // KRAL - Ön ve arka (kılıç kaldırıldı, fotoğrafta zaten var)
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let onMat = new THREE.MeshStandardMaterial({ map: tKralOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
@@ -328,14 +327,6 @@
                 arkaMesh.rotation.y = Math.PI;
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
-
-                // Kılıç
-                let kilicGeo = new THREE.PlaneGeometry(0.2, 1.1);
-                let kilicMat = new THREE.MeshStandardMaterial({ map: tKralKilic, transparent: true, side: THREE.DoubleSide });
-                let kilicMesh = new THREE.Mesh(kilicGeo, kilicMat);
-                kilicMesh.position.set(0.35, -0.1, 0.02);
-                kilicMesh.rotation.z = -Math.PI / 6;
-                askerGroup.add(kilicMesh);
 
                 // Kral 5 kat büyük
                 askerGroup.scale.set(5, 5, 5);
