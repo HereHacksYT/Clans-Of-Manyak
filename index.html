@@ -311,13 +311,13 @@
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let onMat = new THREE.MeshStandardMaterial({ map: tSavasciOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
-                onMesh.position.z = 0.01; // Birbirine çakışmasınlar diye minik fark
+                onMesh.position.z = 0.01;
                 askerGroup.add(onMesh);
 
                 let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let arkaMat = new THREE.MeshStandardMaterial({ map: tSavasciArka, transparent: true, side: THREE.FrontSide });
                 let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
-                arkaMesh.rotation.y = Math.PI; // Arkaya baksın
+                arkaMesh.rotation.y = Math.PI;
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
 
@@ -325,9 +325,12 @@
                 let kilicGeo = new THREE.PlaneGeometry(0.2, 1.1);
                 let kilicMat = new THREE.MeshStandardMaterial({ map: tSavasciKilic, transparent: true, side: THREE.DoubleSide });
                 let kilicMesh = new THREE.Mesh(kilicGeo, kilicMat);
-                kilicMesh.position.set(0.35, -0.1, 0.02); // Sağ el hizası
-                kilicMesh.rotation.z = -Math.PI / 6; // Şık dursun diye hafif eğik
+                kilicMesh.position.set(0.35, -0.1, 0.02);
+                kilicMesh.rotation.z = -Math.PI / 6;
                 askerGroup.add(kilicMesh);
+
+                // 🔥 SAVAŞÇIYI 2.5 KAT BÜYÜT 🔥
+                askerGroup.scale.set(2.5, 2.5, 2.5);
             } else {
                 // Varsayılan küçük küp askerler
                 let renk = (tip === 'okcu') ? 0xe74c3c : 0xf1c40f;
