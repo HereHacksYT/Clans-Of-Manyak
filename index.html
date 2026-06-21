@@ -41,8 +41,8 @@
 
         #build-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(44, 62, 80, 0.95); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 2px solid #ff9f43; display: none; z-index: 10; pointer-events: none; }
         
-        #confirm-panel { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 15; display: none; gap: 15px; }
-        .confirm-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; border: 2px solid white; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        #confirm-panel { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 999; display: none; gap: 15px; }
+        .confirm-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; border: 2px solid white; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.5); pointer-events: auto; }
         #btn-yes { background: #2ecc71; }
         #btn-no { background: #e74c3c; }
 
@@ -191,6 +191,7 @@
                 document.getElementById('canvas-container').style.display = 'block';
                 document.getElementById('ui-layer').style.display = 'block';
                 document.getElementById('menu-toggle').style.display = 'block';
+                document.getElementById('ui-name').innerText = oyuncu.username;
                 
                 switchTab('shop');
                 uiGuncelle();
@@ -206,13 +207,16 @@
         }
 
         function uiGuncelle() {
+            if(!oyuncu) return;
             document.getElementById('ui-gold').innerText = oyuncu.gold;
             document.getElementById('ui-elixir').innerText = oyuncu.elixir;
             document.getElementById('ui-th').innerText = oyuncu.town_hall;
+            if(!oyuncu.troops) oyuncu.troops = { barbar: 0, okcu: 0 };
             document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.barbar || 0} Barbar | ${oyuncu.troops.okcu || 0} Okçu`;
         }
 
         function koyuKaliciKaydet() {
+            if(!oyuncu) return;
             fetch('/save-village', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -247,8 +251,8 @@
         }
 
         function haritayaTiklandi(event) {
-            if(event.clientY < 60 && event.clientX > window.innerWidth - 60) return; 
             if(!insaatModu) return;
+            if(event.clientY < 60 && event.clientX > window.innerWidth - 60) return; 
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -329,7 +333,7 @@
         }
 
         function chatYukle() {
-            if(document.getElementById('chat-section').style.display === 'none') return;
+            if(!oyuncu || document.getElementById('chat-section').style.display === 'none') return;
             fetch('/chat').then(res => res.json()).then(mesajlar => {
                 const kutu = document.getElementById('chat-messages');
                 kutu.innerHTML = mesajlar.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
@@ -339,7 +343,7 @@
 
         function mesajGonder() {
             const girdi = document.getElementById('chat-input');
-            const m = girdi.value.trim(); if(!m) return;
+            const m = girdi.value.trim(); if(!m || !oyuncu) return;
             fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -361,6 +365,8 @@
             container.innerHTML = ""; 
             container.appendChild(renderer.domElement);
 
+            // Tıklama dinleyicisini harita açıldıktan sonra buraya bağlıyoruz
+            window.removeEventListener('click', haritayaTiklandi);
             window.addEventListener('click', haritayaTiklandi);
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
