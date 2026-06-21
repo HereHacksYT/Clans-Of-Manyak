@@ -77,7 +77,6 @@
 
     <div id="build-overlay">🔨 Yer seçin (Haritaya dokunun)</div>
 
-    <!-- Onay Paneli (Girişleri Engellemek İçin Özel Kilit Tetikleyicileri Eklendi) -->
     <div id="confirm-panel" 
          onmouseenter="uiKilitle(true)" onmouseleave="uiKilitle(false)"
          ontouchstart="uiKilitle(true)"
@@ -104,7 +103,7 @@
             <div class="shop-category">🏢 BİNALAR</div>
             <div class="scroll-wrapper">
                 <div class="shop-card" onclick="secBina('kanon', 600, 'gold', event)">
-                    <div class="card-title">💣 Kanon Topu</div>
+                    <div class="card-title">☄️ Havan</div>
                     <div class="card-price">🪙 600 Altın</div>
                 </div>
                 <div class="shop-card" onclick="secBina('kisla', 800, 'elixir', event)">
@@ -155,10 +154,11 @@
         let geciciMesh = null; 
         let geciciX = 0, geciciZ = 0; 
 
-        // Tıklama çakışmasını tamamen bitiren kilit değişkeni
         let uiTiklamaKilidi = false;
-
         let sahnedekiBinalar = [];
+
+        // Havan Dokuları İçin Global Değişkenler
+        let havanYanDoku = null, havanUstDoku = null;
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -168,7 +168,7 @@
         }
 
         function binalarinFiyatiniBul(tip) {
-            if(tip === 'kanon') return { bedel: 600, tip: 'gold' };
+            if(tip === 'kanon') return { bedel: 600, tip: 'gold' }; // Veritabanı uyumluluğu için tip anahtarı 'kanon' kaldı
             if(tip === 'kisla') return { bedel: 800, tip: 'elixir' };
             if(tip === 'duvar') return { bedel: 100, tip: 'gold' };
             return { bedel: 0, tip: 'gold' };
@@ -300,7 +300,7 @@
         }
 
         function haritayaTiklandi(clientX, clientY) {
-            if(uiTiklamaKilidi) return; // UI üzerindeysek asla harita tıklamasını işleme!
+            if(uiTiklamaKilidi) return;
 
             mouse.x = (clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clientY / window.innerHeight) * 2 + 1;
@@ -368,7 +368,7 @@
             if(insaatParaTipi === 'gold') oyuncu.gold -= insaatBedeli;
             else oyuncu.elixir -= insaatBedeli;
 
-            if(!oyuncu.buildings) !!(oyuncu.buildings = []);
+            if(!oyuncu.buildings) oyuncu.buildings = [];
             oyuncu.buildings.push({ type: seciliInsaatTipi, x: geciciX, z: geciciZ });
             
             binaKoySahnede3D(seciliInsaatTipi, geciciX, geciciZ, false);
@@ -402,12 +402,25 @@
             let opacityVal = isPreview ? 0.6 : 1.0;
             let transVal = isPreview;
 
+            // KANON ARTIK HAVAN YAPILDI VE GÖNDERDİĞİN DOKULAR GIYDIRILDI
             if(tip === 'kanon') {
-                const kule = new THREE.Mesh(new THREE.BoxGeometry(1, 1.8, 1), new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0x34495e, transparent: transVal, opacity: opacityVal }));
-                kule.position.y = 0.9; 
-                const topu = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshStandardMaterial({ color: 0x111111, transparent: transVal, opacity: opacityVal }));
-                topu.position.y = 1.8;
-                meshGroup.add(kule, topu);
+                // Küpün her yüzüne ayrı malzeme (Sağ, Sol, Üst, Alt, Ön, Arka)
+                // Üst yüze (indis 2) namlu resmi, yan yüzlere ise yan taş resmi yerleştiriliyor
+                const yanMat = new THREE.MeshStandardMaterial({ map: havanYanDoku, transparent: transVal, opacity: opacityVal });
+                const ustMat = new THREE.MeshStandardMaterial({ map: havanUstDoku, transparent: transVal, opacity: opacityVal });
+                
+                const materyaller = [
+                    yanMat, // Sağ
+                    yanMat, // Sol
+                    ustMat, // Üst (Namlu Ağzı)
+                    yanMat, // Alt
+                    yanMat, // Ön
+                    yanMat  // Arka
+                ];
+
+                const havanGövde = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materyaller);
+                havanGövde.position.y = 0.6;
+                meshGroup.add(havanGövde);
             } 
             else if(tip === 'kisla') {
                 const cadir = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 4), new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0xe67e22, transparent: transVal, opacity: opacityVal }));
@@ -475,6 +488,11 @@
             const tLoader = new THREE.TextureLoader(); 
             tLoader.crossOrigin = "anonymous";
             
+            // Yeni Havan Resimleri Yükleniyor
+            havanYanDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10'); // Fallback veya resimlink proxy linki entegrasyonu
+            havanYanDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/VrJl40sboA.jpeg'));
+            havanUstDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/itHIsPM.png'));
+
             const cimenDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
             cimenDoku.wrapS = THREE.RepeatWrapping; cimenDoku.wrapT = THREE.RepeatWrapping; cimenDoku.repeat.set(5, 5);
 
@@ -528,11 +546,12 @@
                 if (uiTiklamaKilidi) return;
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
                 if(tiklandi && !panelAcik && e.clientX < window.innerWidth - 60) { 
-                    let fark = e.clientX - eskiX;
-                    if(Math.abs(fark) > 4) {
+                    let fark = e.clientX - esKIX = e.clientX;
+                    let mFark = e.clientX - eskiX;
+                    if(Math.abs(mFark) > 4) {
                         suruklendiMi = true; 
                     }
-                    kameraAcisi -= fark * 0.007; 
+                    kameraAcisi -= mFark * 0.007; 
                     kameraPozisyonunuGuncelle();
                 }
                 eskiX = e.clientX;
