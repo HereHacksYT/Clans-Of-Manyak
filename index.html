@@ -329,19 +329,25 @@
                 kilicMesh.rotation.z = -Math.PI / 6;
                 askerGroup.add(kilicMesh);
 
-                // 🔥 SAVAŞÇIYI 2.5 KAT BÜYÜT 🔥
-                askerGroup.scale.set(2.5, 2.5, 2.5);
+                // 🔥 SAVAŞÇIYI 5 KAT BÜYÜT (önce 2.5 sonra 2 kat daha = 5x) 🔥
+                askerGroup.scale.set(5, 5, 5);
+                
+                // Yüksekliği ayarla - zeminin üzerinde dursun
+                askerGroup.position.y = 3.5; // Normalde 0.7 idi, 5x büyüdüğü için 5 katına çıkardık
+
             } else {
                 // Varsayılan küçük küp askerler
                 let renk = (tip === 'okcu') ? 0xe74c3c : 0xf1c40f;
                 let k = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: renk }));
                 askerGroup.add(k);
+                askerGroup.position.y = 0.7;
             }
 
             // Belediye binasının etrafında rastgele doğsunlar
             let rAci = Math.random() * Math.PI * 2;
             let rUzaklik = 4 + Math.random() * 3;
-            askerGroup.position.set(Math.cos(rAci)*rUzaklik, 0.7, Math.sin(rAci)*rUzaklik);
+            askerGroup.position.x = Math.cos(rAci) * rUzaklik;
+            askerGroup.position.z = Math.sin(rAci) * rUzaklik;
             
             scene.add(askerGroup);
             sahnedekiAskerler.push({ group: askerGroup, tip: tip, hedefX: askerGroup.position.x, hedefZ: askerGroup.position.z, sayac: 0 });
