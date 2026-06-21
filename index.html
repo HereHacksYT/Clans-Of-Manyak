@@ -3,78 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clash Of Manyak</title>
+    <title>Clash Of Manyak 3D</title>
     <style>
-        body { background-color: #222; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .box { background: #333; padding: 20px; border-radius: 10px; max-width: 400px; margin: 20px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        input { padding: 10px; width: 80%; border-radius: 5px; border: none; margin-bottom: 15px; background: #444; color: white; }
-        button { padding: 10px 20px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .stat { font-size: 18px; margin: 10px 0; font-weight: bold; }
+        body { margin: 0; padding: 0; background-color: #222; font-family: sans-serif; overflow: hidden; color: white; }
+        .box { background: rgba(51, 51, 51, 0.9); padding: 20px; border-radius: 10px; max-width: 350px; margin: 100px auto; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; position: relative; }
+        input { padding: 12px; width: 80%; border-radius: 5px; border: none; margin-bottom: 15px; background: #444; color: white; font-size: 16px; }
+        button { padding: 12px 25px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        #ui-layer { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; display: none; pointer-events: none; }
+        .stat { font-size: 16px; margin: 5px 0; font-weight: bold; }
         .gold { color: #f1c40f; }
         .elixir { color: #9b59b6; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
     </style>
+    <!-- Three.js Kütüphanesi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <h1>⚔️ Clash Of Manyak ⚔️</h1>
-    
-    <!-- Giriş ve Şifre Ekranı -->
+    <!-- Giriş Ekranı -->
     <div id="login-box" class="box">
-        <h3>Köyüne Giriş Yap veya Kaydol</h3>
+        <h2>⚔️ Clash Of Manyak 3D ⚔️</h2>
+        <h3>Köyünü Kur veya Giriş Yap</h3>
         <input type="text" id="username" placeholder="Kullanıcı Adı...">
         <input type="password" id="password" placeholder="Şifre...">
         <br>
-        <button onclick="oyunaGir()">Savaşa Katıl!</button>
+        <button onclick="oyunaGiris()">Savaşa Katıl! (3D)</button>
     </div>
 
-    <!-- Köy Ekranı -->
-    <div id="koy-box" class="box" style="display: none;">
-        <h2>Şef <span id="koy-sahibi" style="color: #54a0ff;"></span> Köyü</h2>
-        <div class="stat gold">🪙 Altın: <span id="gold-txt">0</span></div>
-        <div class="stat elixir">🧪 İksir: <span id="elixir-txt">0</span></div>
-        <div class="stat">🏛️ Belediye Binası: <span id="th-txt">1</span>. Seviye</div>
-        <br>
-        <button onclick="madenleriTopla()">Madenleri Topla (Yenile)</button>
+    <!-- Oyun İçi Arayüz Göstergeleri -->
+    <div id="ui-layer">
+        <div class="stat">Şef: <span id="ui-name" style="color:#54a0ff;"></span></div>
+        <div class="stat gold">🪙 Altın: <span id="ui-gold">0</span></div>
+        <div class="stat elixir">🧪 İksir: <span id="ui-elixir">0</span></div>
+        <div class="stat">🏛️ Belediye: <span id="ui-th">1</span>. Seviye</div>
+        <p style="font-size:11px; color:#aaa; margin:5px 0 0 0;">Ekranı sürükleyerek dünyayı döndür!</p>
     </div>
+
+    <!-- 3D Sahnenin Çizileceği Yer -->
+    <div id="canvas-container"></div>
 
     <script>
-        let aktifKullanici = "";
-        let aktifSifre = "";
+        let oyuncu verisi = null;
 
-        function oyunaGir() {
-            const isim = document.getElementById('username').value;
+        function oyunaGiris() {
+            const isim = document.getElementById('username').value.trim();
             const sifre = document.getElementById('password').value;
-            if(!isim || !sifre) return alert("Kullanıcı adı ve şifre yazmalısın!");
+
+            if(!isim || !sifre) return alert("Eksik bilgi bırakma!");
+
+            // LocalStorage ile tarayıcı hafızasından kontrol et (Sıfırlanmaz!)
+            let lokalHafiza = localStorage.getItem("manyak_player_" + isim);
+
+            if (lokalHafiza) {
+                let varOlan = JSON.parse(lokalHafiza);
+                if (varOlan.password !== sifre) {
+                    return alert("Hatalı şifre! Bu köyün sahibi sen değilsin.");
+                }
+                oyuncuVerisi = varOlan;
+                // Giriş yapınca pasif gelir ekle
+                oyuncuVerisi.gold += 150;
+                oyuncuVerisi.elixir += 150;
+            } else {
+                // İlk defa giriyorsa sıfır köy aç ve şifre belirle
+                oyuncuVerisi = {
+                    username: isim,
+                    password: sifre,
+                    gold: 1000,
+                    elixir: 1000,
+                    town_hall: 1
+                };
+            }
+
+            // Güncel veriyi kaydet
+            localStorage.setItem("manyak_player_" + isim, JSON.stringify(oyuncuVerisi));
+
+            // Arayüzü Değiştir
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('ui-layer').style.display = 'block';
             
-            aktifKullanici = isim;
-            aktifSifre = sifre;
-            verileriGonder();
+            document.getElementById('ui-name').innerText = oyuncuVerisi.username;
+            document.getElementById('ui-gold').innerText = oyuncuVerisi.gold;
+            document.getElementById('ui-elixir').innerText = oyuncuVerisi.elixir;
+            document.getElementById('ui-th').innerText = oyuncuVerisi.town_hall;
+
+            // 3D Dünyayı Başlat!
+            init3DWorld();
         }
 
-        function verileriGonder() {
-            fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: aktifKullanici, password: aktifSifre })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.error) {
-                    alert(data.error); // Şifre yanlışsa uyarı ver
-                } else {
-                    document.getElementById('login-box').style.display = 'none';
-                    document.getElementById('koy-box').style.display = 'block';
-                    
-                    document.getElementById('koy-sahibi').innerText = data.player.username;
-                    document.getElementById('gold-txt').innerText = data.player.gold;
-                    document.getElementById('elixir-txt').innerText = data.player.elixir;
-                    document.getElementById('th-txt').innerText = data.player.town_hall;
+        // --- THREE.JS 3D MOTORU ---
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            
+            // Sahne ve Kamera
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x34495e); // Gökyüzü rengi
+            
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 15, 20);
+            camera.lookAt(0, 2, 0);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // Işıklandırma
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Yeşil Çimenlik Alan (Köy Meydanı)
+            const groundGeo = new THREE.BoxGeometry(25, 0.5, 25);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x27ae60, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -0.25;
+            scene.add(ground);
+
+            // BELEDİYE BİNASI (Gövde - Kırmızı Küp)
+            const thGeo = new THREE.BoxGeometry(4, 3, 4);
+            const thMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c });
+            const townHall = new THREE.Mesh(thGeo, thMat);
+            townHall.position.y = 1.5;
+            scene.add(townHall);
+
+            // BELEDİYE BİNASI ÇATISI (Sarı Piramit/Koni)
+            const roofGeo = new THREE.ConeGeometry(3.5, 2, 4);
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 4;
+            roof.rotation.y = Math.PI / 4; // Çatıyı düzelt
+            scene.add(roof);
+
+            // Altın Madeni (Küçük Altın Küpü)
+            const goldMineGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            const goldMineMat = new THREE.MeshStandardMaterial({ color: 0xf39c12 });
+            const goldMine = new THREE.Mesh(goldMineGeo, goldMineMat);
+            goldMine.position.set(-6, 0.75, -4);
+            scene.add(goldMine);
+
+            // İksir Toplayıcı (Mor Silindir)
+            const elixirGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 8);
+            const elixirMat = new THREE.MeshStandardMaterial({ color: 0x9b59b6 });
+            const elixirMine = new THREE.Mesh(elixirGeo, elixirMat);
+            elixirMine.position.set(6, 1, -4);
+            scene.add(elixirMine);
+
+            // Dokunma/Sürükleme ile Dünyayı Döndürme Efekti
+            let isDragging = false;
+            let previousMousePosition = { x: 0 };
+
+            window.addEventListener('mousedown', () => isDragging = true);
+            window.addEventListener('mouseup', () => isDragging = false);
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    scene.rotation.y += deltaX * 0.01;
+                }
+                previousMousePosition = { x: e.clientX };
+            });
+
+            // Telefonlar İçin Dokunma Desteği
+            window.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                previousMousePosition.x = e.touches[0].clientX;
+            });
+            window.addEventListener('touchend', () => isDragging = false);
+            window.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                    scene.rotation.y += deltaX * 0.01;
+                    previousMousePosition.x = e.touches[0].clientX;
                 }
             });
-        }
 
-        function madenleriTopla() {
-            verileriGonder();
+            // Ekran Boyutu Değişirse Dünyayı Hizala
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Sonsuz Döngü (Animasyon)
+            function animate() {
+                requestAnimationFrame(animate);
+                // Madenler kendi etrafında hafifçe dönsün, havalı dursun
+                goldMine.rotation.y += 0.01;
+                elixirMine.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            animate();
         }
     </script>
 </body>
