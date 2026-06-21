@@ -180,13 +180,22 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // KRAL - 4 YÜZEY (Ön, Arka, Sağ, Sol)
-        const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
-        const tKralArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
-        const tKralSag = textureLoader.load('https://r.resimlink.com/rXdAuj7DCf.png');  // YENİ SAĞ
-        const tKralSol = textureLoader.load('https://r.resimlink.com/JgI_iCBSZAs.png'); // YENİ SOL
+        // ============ KRAL İÇİN PARÇA TEXTURE'LAR ============
+        // Yüz / Kafa
+        const tKralYuz = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
+        const tKralYuzArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
+        
+        // Gövde (Zırh)
+        const tKralGovde = textureLoader.load('https://r.resimlink.com/guvsIEGc.png');
+        const tKralGovdeArka = textureLoader.load('https://r.resimlink.com/JgI_iCBSZAs.png');
+        
+        // Kılıç
+        const tKralKilic = textureLoader.load('https://r.resimlink.com/lroVaDEBn2KT.png');
+        
+        // Kalkan
+        const tKralKalkan = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png'); // Geçici
 
-        // KRAL OKÇU Kaplamaları (ön-arka devam)
+        // KRAL OKÇU Kaplamaları
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
         const tOkcuArka = textureLoader.load('https://r.resimlink.com/2SVFCM6B1N.png');
 
@@ -265,7 +274,6 @@
                     oyuncu.buildings.forEach(b => binaKoySahnede3D(b.type, b.x, b.z, false));
                 }
 
-                // Sahneye başlangıç askerlerini yükle
                 if(oyuncu.troops) {
                     let savasciSayisi = oyuncu.troops.savasci || 0;
                     for(let i=0; i<savasciSayisi; i++) {
@@ -312,28 +320,173 @@
             askerYarat3D(tip);
         }
 
+        // ============ KRAL'I PARÇA PARÇA OLUŞTUR ============
+        function kralOlustur() {
+            let grup = new THREE.Group();
+            
+            // 1. BACAKLAR (Alt gövde)
+            const bacakMateryal = new THREE.MeshStandardMaterial({ 
+                color: 0x4a3728, 
+                roughness: 0.7,
+                metalness: 0.3
+            });
+            
+            // Sol bacak
+            let solBacak = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.25), bacakMateryal);
+            solBacak.position.set(-0.15, 0.2, 0);
+            grup.add(solBacak);
+            
+            // Sağ bacak
+            let sagBacak = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.25), bacakMateryal);
+            sagBacak.position.set(0.15, 0.2, 0);
+            grup.add(sagBacak);
+            
+            // 2. GÖVDE (Zırh)
+            const govdeMateryal = new THREE.MeshStandardMaterial({
+                map: tKralGovde,
+                roughness: 0.5,
+                metalness: 0.6
+            });
+            const govdeMateryalArka = new THREE.MeshStandardMaterial({
+                map: tKralGovdeArka,
+                roughness: 0.5,
+                metalness: 0.6
+            });
+            
+            let govde = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.5, 0.25),
+                [govdeMateryal, govdeMateryal, govdeMateryal, govdeMateryal, govdeMateryalArka, govdeMateryal]
+            );
+            govde.position.set(0, 0.65, 0);
+            grup.add(govde);
+            
+            // 3. KAFA (Başlık ve yüz)
+            const kafaMateryal = new THREE.MeshStandardMaterial({
+                map: tKralYuz,
+                roughness: 0.4,
+                metalness: 0.2
+            });
+            const kafaMateryalArka = new THREE.MeshStandardMaterial({
+                map: tKralYuzArka,
+                roughness: 0.4,
+                metalness: 0.2
+            });
+            
+            let kafa = new THREE.Mesh(
+                new THREE.BoxGeometry(0.35, 0.35, 0.25),
+                [kafaMateryal, kafaMateryal, kafaMateryal, kafaMateryal, kafaMateryalArka, kafaMateryal]
+            );
+            kafa.position.set(0, 1.0, 0);
+            grup.add(kafa);
+            
+            // 4. TAÇ (Kral tacı)
+            const tacMateryal = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            
+            let tac = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.3), tacMateryal);
+            tac.position.set(0, 1.2, 0);
+            grup.add(tac);
+            
+            // Taç sivri uçları
+            for(let i = -1; i <= 1; i+=2) {
+                let sivri = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 4), tacMateryal);
+                sivri.position.set(i * 0.15, 1.28, 0);
+                grup.add(sivri);
+            }
+            let ortaSivri = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.15, 4), tacMateryal);
+            ortaSivri.position.set(0, 1.3, 0);
+            grup.add(ortaSivri);
+            
+            // 5. KRAL PELERİNİ (Arka)
+            const pelerinMateryal = new THREE.MeshStandardMaterial({
+                color: 0x8b0000,
+                roughness: 0.9,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            let pelerin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.05), pelerinMateryal);
+            pelerin.position.set(0, 0.65, -0.15);
+            grup.add(pelerin);
+            
+            // 6. KILIÇ (Sağ el)
+            const kilicMateryal = new THREE.MeshStandardMaterial({
+                map: tKralKilic,
+                metalness: 0.9,
+                roughness: 0.3,
+                transparent: true
+            });
+            
+            // Kılıç kabzası
+            let kabza = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.05), new THREE.MeshStandardMaterial({ color: 0x8B4513 }));
+            kabza.position.set(0.35, 0.7, 0);
+            grup.add(kabza);
+            
+            // Kılıç namlusu
+            let namlu = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.35, 0.03), kilicMateryal);
+            namlu.position.set(0.35, 0.93, 0);
+            grup.add(namlu);
+            
+            // Kılıç ucu
+            let uc = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.06, 4), kilicMateryal);
+            uc.position.set(0.35, 1.12, 0);
+            grup.add(uc);
+            
+            // Kılıç koruyucusu
+            let koruyucu = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8 }));
+            koruyucu.position.set(0.35, 0.75, 0);
+            grup.add(koruyucu);
+            
+            // 7. KALKAN (Sol kol)
+            const kalkanMateryal = new THREE.MeshStandardMaterial({
+                map: tKralKalkan,
+                metalness: 0.7,
+                roughness: 0.4
+            });
+            
+            let kalkan = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.05), kalkanMateryal);
+            kalkan.position.set(-0.35, 0.7, 0);
+            grup.add(kalkan);
+            
+            // Kalkan süsü
+            let kalkanSüs = new THREE.Mesh(new THREE.CircleGeometry(0.06, 8), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8 }));
+            kalkanSüs.position.set(-0.35, 0.7, 0.03);
+            grup.add(kalkanSüs);
+            
+            // 8. OMUZ ZIRHLARI
+            const omuzMateryal = new THREE.MeshStandardMaterial({
+                color: 0x8B0000,
+                metalness: 0.6,
+                roughness: 0.4
+            });
+            
+            let omuzSol = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), omuzMateryal);
+            omuzSol.position.set(-0.3, 0.85, 0);
+            omuzSol.scale.set(1, 0.6, 1);
+            grup.add(omuzSol);
+            
+            let omuzSag = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), omuzMateryal);
+            omuzSag.position.set(0.3, 0.85, 0);
+            omuzSag.scale.set(1, 0.6, 1);
+            grup.add(omuzSag);
+            
+            return grup;
+        }
+
         function askerYarat3D(tip) {
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
-                // KRAL - 4 yüzeyli ince kutu (ön-arka geniş, yanlar ince)
-                // Genişlik (x) = 0.8 (ön-arka geniş), Derinlik (z) = 0.2 (yanlar ince)
-                const materyaller = [
-                    new THREE.MeshStandardMaterial({ map: tKralSag, transparent: true }),   // Sağ (+x) - ince yan
-                    new THREE.MeshStandardMaterial({ map: tKralSol, transparent: true }),   // Sol (-x) - ince yan
-                    new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0 }), // Üst - görünmez
-                    new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0 }), // Alt - görünmez
-                    new THREE.MeshStandardMaterial({ map: tKralOn, transparent: true }),    // Ön (+z) - geniş
-                    new THREE.MeshStandardMaterial({ map: tKralArka, transparent: true })   // Arka (-z) - geniş
-                ];
+                // KRAL - Parça parça oluştur
+                let kral = kralOlustur();
+                askerGroup.add(kral);
                 
-                // BoxGeometry(genişlik, yükseklik, derinlik)
-                let kutu = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.2), materyaller);
-                askerGroup.add(kutu);
-
-                // Kral 5 kat büyük
-                askerGroup.scale.set(5, 5, 5);
-                askerGroup.position.y = 3.5;
+                // Kral 4.5 kat büyük
+                askerGroup.scale.set(4.5, 4.5, 4.5);
+                askerGroup.position.y = 3.2;
 
             } else if(tip === 'okcu') {
                 // KRAL OKÇU - Ön ve arka (2 düzlem)
@@ -709,32 +862,25 @@
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
 
-                // ASKER ANİMASYONLARI - GİTTİĞİ YÖNE BAKMA
                 sahnedekiAskerler.forEach(asker => {
-                    // Hareket yönünü hesapla
                     let dx = asker.group.position.x - asker.oncekiX;
                     let dz = asker.group.position.z - asker.oncekiZ;
                     
-                    // Eğer hareket ediyorsa, gittiği yöne dönsün
                     if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
                         let aci = Math.atan2(dx, dz);
                         asker.group.rotation.y = aci;
                     }
                     
-                    // Önceki pozisyonu kaydet
                     asker.oncekiX = asker.group.position.x;
                     asker.oncekiZ = asker.group.position.z;
 
-                    // Küçük rastgele devriye hareketleri
                     asker.sayac++;
                     if(asker.sayac % 120 === 0) { 
                         asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
                         asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
-                        // Sınırlardan çıkmasınlar
                         if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
                         if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
                     }
-                    // Yumuşakça hedefe ilerleme
                     asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
                     asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
                 });
