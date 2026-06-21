@@ -398,41 +398,38 @@
 
         function binaKoySahnede3D(tip, x, z, isPreview) {
             let meshGroup = new THREE.Group();
-            let opacityVal = isPreview ? 0.6 : 1.0;
-            let transVal = isPreview;
 
             if(tip === 'kanon') {
-                // Siyah kalmaması için taban rengini 0x555555 yaptık. Önizlemede ise yeşil (0x2ecc71) yanacak!
-                let tabanRenk = isPreview ? 0x2ecc71 : 0x555555;
-                
-                const yanMat = new THREE.MeshStandardMaterial({ 
-                    color: tabanRenk,
-                    map: havanYanDoku, 
-                    transparent: true, 
-                    opacity: opacityVal 
-                });
-                const ustMat = new THREE.MeshStandardMaterial({ 
-                    color: tabanRenk,
-                    map: havanUstDoku, 
-                    transparent: true, 
-                    opacity: opacityVal 
-                });
-                
-                const materyaller = [
-                    yanMat, yanMat, ustMat, yanMat, yanMat, yanMat
-                ];
-
-                const havanGövde = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materyaller);
+                let havanGövde;
+                if (isPreview) {
+                    // Önizleme esnasında kare/küp şeklinde yeşil hayalet bina yapısı
+                    havanGövde = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.2, 1.2, 1.2), 
+                        new THREE.MeshStandardMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.6 })
+                    );
+                } else {
+                    // Satın alıp yerleştirdiğimizde kare/küp şeklinde asıl dokular yüklenecek
+                    const yanMat = new THREE.MeshStandardMaterial({ color: 0x555555, map: havanYanDoku });
+                    const ustMat = new THREE.MeshStandardMaterial({ color: 0x555555, map: havanUstDoku });
+                    const materyaller = [yanMat, yanMat, ustMat, yanMat, yanMat, yanMat];
+                    havanGövde = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materyaller);
+                }
                 havanGövde.position.y = 0.6;
                 meshGroup.add(havanGövde);
             } 
             else if(tip === 'kisla') {
-                const cadir = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 4), new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0xe67e22, transparent: transVal, opacity: opacityVal }));
+                const cadir = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.8, 1.5, 4), 
+                    new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0xe67e22, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                );
                 cadir.position.y = 0.75; cadir.rotation.y = Math.PI/4;
                 meshGroup.add(cadir);
             }
             else if(tip === 'duvar') {
-                const blok = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0x7f8c8d, roughness: 0.9, transparent: transVal, opacity: opacityVal }));
+                const blok = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.9, 0.9, 0.9), 
+                    new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0x7f8c8d, roughness: 0.9, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                );
                 blok.position.y = 0.45;
                 meshGroup.add(blok);
             }
@@ -451,7 +448,7 @@
             if(!oyuncu || document.getElementById('chat-section').style.display === 'none') return;
             fetch('/chat').then(res => res.json()).then(mesajlar => {
                 const kutu = document.getElementById('chat-messages');
-                kutu.innerHTML = mesajlar.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
+                kutu.innerHTML = messages.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
                 kutu.scrollTop = kutu.scrollHeight;
             }).catch(() => {});
         }
