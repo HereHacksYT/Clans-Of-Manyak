@@ -123,6 +123,10 @@
 
             <div class="shop-category">⚔️ ASKERLER</div>
             <div class="scroll-wrapper">
+                <div class="shop-card" onclick="satinAlAsker('savasci', 250, event)">
+                    <div class="card-title">😎 Savaşçı (Ajan)</div>
+                    <div class="card-price">🧪 250 İksir</div>
+                </div>
                 <div class="shop-card" onclick="satinAlAsker('barbar', 150, event)">
                     <div class="card-title">🦁 Barbar</div>
                     <div class="card-price">🧪 150 İksir</div>
@@ -153,6 +157,7 @@
 
         let uiTiklamaKilidi = false;
         let sahnedekiBinalar = [];
+        let sahnedekiAskerler = [];
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -171,9 +176,14 @@
         const tHavanGovde = textureLoader.load('https://r.resimlink.com/EVmz-vsnu.jpeg');
         const tHavanNamlu = textureLoader.load('https://r.resimlink.com/zNfTnKJGg.png');
 
-        // YENİ ASKER KULÜBESİ KAPLAMALARI
+        // Asker Kulübesi Kaplamaları
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
+
+        // YENİ SAVAŞÇI ASKERİ KAPLAMALARI
+        const tSavasciOn = textureLoader.load('https://r.resimlink.com/fuYls-mEA6Wb.png');
+        const tSavasciArka = textureLoader.load('https://r.resimlink.com/2L8VeIps-jnr.png');
+        const tSavasciKilic = textureLoader.load('https://r.resimlink.com/lroVaDEBn2KT.png');
 
         tCimen.wrapS = THREE.RepeatWrapping;
         tCimen.wrapT = THREE.RepeatWrapping;
@@ -249,6 +259,14 @@
                 if(oyuncu.buildings) {
                     oyuncu.buildings.forEach(b => binaKoySahnede3D(b.type, b.x, b.z, false));
                 }
+
+                // Sahneye başlangıç askerlerini yükle
+                if(oyuncu.troops) {
+                    let savasciSayisi = oyuncu.troops.savasci || 0;
+                    for(let i=0; i<savasciSayisi; i++) {
+                        askerYarat3D('savasci');
+                    }
+                }
                 
                 setInterval(chatYukle, 3000);
             })
@@ -260,8 +278,8 @@
             document.getElementById('ui-gold').innerText = oyuncu.gold;
             document.getElementById('ui-elixir').innerText = oyuncu.elixir;
             document.getElementById('ui-th').innerText = oyuncu.town_hall;
-            if(!oyuncu.troops) oyuncu.troops = { barbar: 0, okcu: 0 };
-            document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.barbar || 0} Barbar | ${oyuncu.troops.okcu || 0} Okçu`;
+            if(!oyuncu.troops) oyuncu.troops = { savasci: 0, barbar: 0, okcu: 0 };
+            document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.savasci || 0} Savaşçı | ${oyuncu.troops.barbar || 0} Barbar`;
         }
 
         function koyuKaliciKaydet() {
@@ -277,10 +295,53 @@
             if(e) e.stopPropagation();
             if(oyuncu.elixir < bedel) return alert("Yetersiz İksir!");
             oyuncu.elixir -= bedel;
-            if(!oyuncu.troops) oyuncu.troops = { barbar: 0, okcu: 0 };
+            if(!oyuncu.troops) oyuncu.troops = { savasci: 0, barbar: 0, okcu: 0 };
             oyuncu.troops[tip] = (oyuncu.troops[tip] || 0) + 1;
+            
             uiGuncelle();
             koyuKaliciKaydet();
+            askerYarat3D(tip);
+        }
+
+        function askerYarat3D(tip) {
+            let askerGroup = new THREE.Group();
+
+            if(tip === 'savasci') {
+                // Ön ve arka için ince 2 katmanlı düzlem (Mesh) yapısı
+                let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
+                let onMat = new THREE.MeshStandardMaterial({ map: tSavasciOn, transparent: true, side: THREE.FrontSide });
+                let onMesh = new THREE.Mesh(onGeo, onMat);
+                onMesh.position.z = 0.01; // Birbirine çakışmasınlar diye minik fark
+                askerGroup.add(onMesh);
+
+                let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
+                let arkaMat = new THREE.MeshStandardMaterial({ map: tSavasciArka, transparent: true, side: THREE.FrontSide });
+                let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
+                arkaMesh.rotation.y = Math.PI; // Arkaya baksın
+                arkaMesh.position.z = -0.01;
+                askerGroup.add(arkaMesh);
+
+                // Efsanevi Kılıç
+                let kilicGeo = new THREE.PlaneGeometry(0.2, 1.1);
+                let kilicMat = new THREE.MeshStandardMaterial({ map: tSavasciKilic, transparent: true, side: THREE.DoubleSide });
+                let kilicMesh = new THREE.Mesh(kilicGeo, kilicMat);
+                kilicMesh.position.set(0.35, -0.1, 0.02); // Sağ el hizası
+                kilicMesh.rotation.z = -Math.PI / 6; // Şık dursun diye hafif eğik
+                askerGroup.add(kilicMesh);
+            } else {
+                // Varsayılan küçük küp askerler
+                let renk = (tip === 'okcu') ? 0xe74c3c : 0xf1c40f;
+                let k = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: renk }));
+                askerGroup.add(k);
+            }
+
+            // Belediye binasının etrafında rastgele doğsunlar
+            let rAci = Math.random() * Math.PI * 2;
+            let rUzaklik = 4 + Math.random() * 3;
+            askerGroup.position.set(Math.cos(rAci)*rUzaklik, 0.7, Math.sin(rAci)*rUzaklik);
+            
+            scene.add(askerGroup);
+            sahnedekiAskerler.push({ group: askerGroup, tip: tip, hedefX: askerGroup.position.x, hedefZ: askerGroup.position.z, sayac: 0 });
         }
 
         function secBina(tip, bedel, paraTipi, e) {
@@ -417,7 +478,6 @@
             let meshGroup = new THREE.Group();
 
             if(tip === 'kanon') {
-                // Havan Modeli
                 let havanKupGovde = new THREE.Mesh(
                     new THREE.BoxGeometry(1.4, 1.0, 1.4), 
                     new THREE.MeshStandardMaterial({ map: tHavanGovde, roughness: 0.5, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
@@ -440,21 +500,19 @@
                 meshGroup.add(yivliNamlu);
             } 
             else if(tip === 'kisla') {
-                // YENI ASKER KULÜBESİ MODELİ (Önü kapılı, yanları kütük duvarlı küp yapısı)
                 const materyaller = [
-                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), // Sağ
-                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), // Sol
-                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), // Üst (Çatı kapatacak)
-                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), // Alt
-                    new THREE.MeshStandardMaterial({ map: tKulubeKapi, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }),  // Ön (Kapı tarafı bize bakıyor)
-                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })  // Arka
+                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), 
+                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), 
+                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), 
+                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }), 
+                    new THREE.MeshStandardMaterial({ map: tKulubeKapi, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 }),  
+                    new THREE.MeshStandardMaterial({ map: tKulubeDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })  
                 ];
 
                 const kulubeGovde = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 1.4), materyaller);
                 kulubeGovde.position.y = 0.55;
                 meshGroup.add(kulubeGovde);
 
-                // Kulübenin Üst Çatısı
                 const kulubeCati = new THREE.Mesh(
                     new THREE.ConeGeometry(1.1, 0.8, 4), 
                     new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
@@ -542,7 +600,7 @@
             const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6 }));
             cati.position.y = 3.4; cati.rotation.y = Math.PI / 4; scene.add(cati);
 
-            // HAREKETSİZ DEPOLAR
+            // DEPOLAR
             const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: tAltin, roughness: 0.4 }));
             altinKup.position.set(-6, 0.75, -6); scene.add(altinKup);
             
@@ -614,6 +672,27 @@
 
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
+
+                // ASKER ANİMASYONLARI VE KAMERAYA GÖRE DÖNME MANTIĞI
+                sahnedekiAskerler.forEach(asker => {
+                    // Kamera açısına göre askerlerin sürekli kameraya doğru bakmasını sağlıyoruz (Billboard etkisi)
+                    // Böylece önü kameraya bakarken arkasına geçildiğinde arka kaplaması görünecek
+                    asker.group.rotation.y = kameraAcisi;
+
+                    // Küçük rastgele devriye hareketleri
+                    asker.sayac++;
+                    if(asker.sayac % 120 === 0) { 
+                        asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
+                        asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
+                        // Sınırlardan çıkmasınlar
+                        if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
+                        if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
+                    }
+                    // Yumuşakça hedefe ilerleme
+                    asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
+                    asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
+                });
+
                 renderer.render(scene, camera);
             }
             renderDongusu();
