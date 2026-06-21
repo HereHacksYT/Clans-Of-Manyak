@@ -402,17 +402,17 @@
             if(tip === 'kanon') {
                 let havanGövde;
                 if (isPreview) {
-                    // Önizleme esnasında kare/küp şeklinde yeşil hayalet bina yapısı
+                    // Yeşil, yarı saydam ve net kare önizleme küpü
                     havanGövde = new THREE.Mesh(
                         new THREE.BoxGeometry(1.2, 1.2, 1.2), 
-                        new THREE.MeshStandardMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.6 })
+                        new THREE.MeshBasicMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.6 })
                     );
                 } else {
-                    // Satın alıp yerleştirdiğimizde kare/küp şeklinde asıl dokular yüklenecek
-                    const yanMat = new THREE.MeshStandardMaterial({ color: 0x555555, map: havanYanDoku });
-                    const ustMat = new THREE.MeshStandardMaterial({ color: 0x555555, map: havanUstDoku });
-                    const materyaller = [yanMat, yanMat, ustMat, yanMat, yanMat, yanMat];
-                    havanGövde = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materyaller);
+                    // MeshBasicMaterial kullanarak siyah kalma sorununu tamamen çözüyoruz. Doku gelmese bile taş rengi (0x7f8c8d) kalacak.
+                    havanGövde = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.2, 1.2, 1.2), 
+                        new THREE.MeshBasicMaterial({ color: 0x7f8c8d, map: havanYanDoku })
+                    );
                 }
                 havanGövde.position.y = 0.6;
                 meshGroup.add(havanGövde);
@@ -420,7 +420,7 @@
             else if(tip === 'kisla') {
                 const cadir = new THREE.Mesh(
                     new THREE.ConeGeometry(0.8, 1.5, 4), 
-                    new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0xe67e22, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                    new THREE.MeshBasicMaterial({ color: isPreview ? 0x2ecc71 : 0xe67e22, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
                 );
                 cadir.position.y = 0.75; cadir.rotation.y = Math.PI/4;
                 meshGroup.add(cadir);
@@ -428,7 +428,7 @@
             else if(tip === 'duvar') {
                 const blok = new THREE.Mesh(
                     new THREE.BoxGeometry(0.9, 0.9, 0.9), 
-                    new THREE.MeshStandardMaterial({ color: isPreview ? 0x2ecc71 : 0x7f8c8d, roughness: 0.9, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                    new THREE.MeshBasicMaterial({ color: isPreview ? 0x2ecc71 : 0xbdc3c7, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
                 );
                 blok.position.y = 0.45;
                 meshGroup.add(blok);
@@ -448,7 +448,7 @@
             if(!oyuncu || document.getElementById('chat-section').style.display === 'none') return;
             fetch('/chat').then(res => res.json()).then(mesajlar => {
                 const kutu = document.getElementById('chat-messages');
-                kutu.innerHTML = messages.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
+                kutu.innerHTML = mesajlar.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
                 kutu.scrollTop = kutu.scrollHeight;
             }).catch(() => {});
         }
@@ -500,7 +500,7 @@
             const govdeAhsapDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhNIvNqD6ne531hKbJso48uu6Xpv1AzHuLqK8d1ygBGw&s=10');
             const catiAhsapDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv9uO_U72MdBbhA9fqa1GydbLtvZR-UdpRRwe2rkeZnw&s=10');
 
-            zeminMesh = new THREE.Mesh(new THREE.BoxGeometry(26, 0.2, 26), new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 }));
+            zeminMesh = new THREE.Mesh(new THREE.BoxGeometry(26, 0.2, 26), new THREE.MeshBasicMaterial({ map: cimenDoku }));
             zeminMesh.position.y = -0.1; 
             scene.add(zeminMesh);
 
@@ -509,14 +509,14 @@
             gridHelper.visible = false; 
             scene.add(gridHelper);
 
-            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: govdeAhsapDoku }));
+            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshBasicMaterial({ map: govdeAhsapDoku }));
             binaGovde.position.y = 1.25; scene.add(binaGovde);
-            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: catiAhsapDoku }));
+            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshBasicMaterial({ map: catiAhsapDoku }));
             cati.position.y = 3.4; cati.rotation.y = Math.PI / 4; scene.add(cati);
 
-            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: altinDoku }));
+            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshBasicMaterial({ map: altinDoku }));
             altinKup.position.set(-6, 0.75, -6); scene.add(altinKup);
-            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: iksirDoku }));
+            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshBasicMaterial({ map: iksirDoku }));
             iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
 
             let tiklandi = false; 
