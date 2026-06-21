@@ -180,13 +180,11 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // KRAL - 6 YÜZEYLİ TEXTURE'LAR
+        // KRAL - 4 YÜZEY (Ön, Arka, Sağ, Sol) - Üst ve Alt kaldırıldı
         const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
         const tKralArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
         const tKralSag = textureLoader.load('https://r.resimlink.com/guvsIEGc.png');
         const tKralSol = textureLoader.load('https://r.resimlink.com/JzU9K3Fs.png');
-        const tKralUst = textureLoader.load('https://r.resimlink.com/QdGU2SfpYgb1.jpeg');
-        const tKralAlt = textureLoader.load('https://r.resimlink.com/QdGU2SfpYgb1.jpeg'); // Alt için üstü kullanıyoruz
 
         // KRAL OKÇU Kaplamaları (ön-arka devam)
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
@@ -318,17 +316,19 @@
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
-                // KRAL - 6 yüzeyli kutu (BoxGeometry)
+                // KRAL - 4 yüzeyli ince kutu (ön-arka-sağ-sol)
+                // Sağ ve sol taraflar ince (0.2), ön-arka normal (0.8 x 1.4)
                 const materyaller = [
-                    new THREE.MeshStandardMaterial({ map: tKralSag, transparent: true }),   // Sağ (+x)
-                    new THREE.MeshStandardMaterial({ map: tKralSol, transparent: true }),   // Sol (-x)
-                    new THREE.MeshStandardMaterial({ map: tKralUst, transparent: true }),   // Üst (+y)
-                    new THREE.MeshStandardMaterial({ map: tKralAlt, transparent: true }),   // Alt (-y)
+                    new THREE.MeshStandardMaterial({ map: tKralSag, transparent: true }),   // Sağ (+x) - ince
+                    new THREE.MeshStandardMaterial({ map: tKralSol, transparent: true }),   // Sol (-x) - ince
+                    new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0 }), // Üst - görünmez
+                    new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0 }), // Alt - görünmez
                     new THREE.MeshStandardMaterial({ map: tKralOn, transparent: true }),    // Ön (+z)
                     new THREE.MeshStandardMaterial({ map: tKralArka, transparent: true })   // Arka (-z)
                 ];
                 
-                let kutu = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.8), materyaller);
+                // Genişlik (x) 0.2 - ince, Derinlik (z) 0.8, Yükseklik (y) 1.4
+                let kutu = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.4, 0.8), materyaller);
                 askerGroup.add(kutu);
 
                 // Kral 5 kat büyük
