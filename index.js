@@ -5,8 +5,11 @@ const Datastore = require('nedb-promises');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Kalıcı veritabanı dosyasını oluşturuyoruz (Geçmiş silinse de burası silinmez!)
 const db = Datastore.create({ filename: path.join(__dirname, 'koyler.db'), autoload: true });
+
+// Mesajları ve anlık binaları sunucu çalıştığı sürece hafızada tutalım
+let globalMessages = [];
+let kurulmusBinalar = {}; // Her oyuncunun ekstra binalarını tutacak
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
@@ -15,48 +18,48 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Şifreli Giriş ve Kalıcı Kayıt Sistemi
+// Giriş ve Kayıt
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.json({ error: "Kullanıcı adı veya şifre eksik!" });
-    }
+    if (!username || !password) return res.json({ error: "Eksik bilgi!" });
 
     try {
-        // Veritabanında bu isimde oyuncu var mı bak
         let player = await db.findOne({ username: username });
-
         if (!player) {
-            // Yoksa YENİ KAYIT oluştur (Şifresiyle birlikte)
-            player = {
-                username: username,
-                password: password,
-                gold: 1000,
-                elixir: 1000,
-                town_hall: 1
-            };
+            player = { username, password, gold: 2000, elixir: 2000, town_hall: 1 }; // Başlangıç parasını arttırdık bina kurulsun diye
             await db.insert(player);
-            return res.json({ success: true, player: player });
+            return res.json({ success: true, player });
         }
 
-        // Varsa ŞİFREYİ KONTROL ET
-        if (player.password !== password) {
-            return res.json({ error: "Hatalı şifre! Bu köye giriş izniniz yok." });
-        }
+        if (player.password !== password) return res.json({ error: "Hatalı şifre!" });
 
-        // Şifre doğruysa pasif gelir ekle ve veritabanını güncelle
-        player.gold += 100 * player.town_hall;
-        player.elixir += 100 * player.town_hall;
-        
-        await db.update({ username: username }, { $set: { gold: player.gold, elixir: player.elixir } });
-
-        res.json({ success: true, player: player });
+        res.json({ success: true, player });
     } catch (err) {
-        res.json({ error: "Veritabanı hatası oluştu!" });
+        res.json({ error: "Sunucu hatası!" });
     }
 });
 
+// Altın/İksir Güncelleme ve Bina Satın Alma Verisi Kaydetme
+app.post('/update-resources', async (req, res) => {
+    const { username, gold, elixir } = req.body;
+    await db.update({ username: username }, { $set: { gold, elixir } });
+    res.json({ success: true });
+});
+
+// GLOBAL CHAT API'LERİ
+app.get('/chat', (req, res) => {
+    res.json(globalMessages);
+});
+
+app.post('/chat', (req, res) => {
+    const { username, message } = req.body;
+    if(!username || !message) return res.json({ error: "Boş mesaj gönderilemez!" });
+    
+    globalMessages.push({ username, message, time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) });
+    if(globalMessages.length > 30) globalMessages.shift(); // Son 30 mesajı tut
+    res.json({ success: true });
+});
+
 app.listen(port, () => {
-    console.log(`Sunucu ${port} portunda tamamen kalıcı ve aktif!`);
+    console.log(`Sunucu ${port} portunda canavar gibi aktif!`);
 });
