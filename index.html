@@ -402,8 +402,21 @@
             let transVal = isPreview;
 
             if(tip === 'kanon') {
-                const yanMat = new THREE.MeshStandardMaterial({ map: havanYanDoku, transparent: transVal, opacity: opacityVal });
-                const ustMat = new THREE.MeshStandardMaterial({ map: havanUstDoku, transparent: transVal, opacity: opacityVal });
+                // Siyah kalmaması için taban rengini 0x555555 yaptık. Önizlemede ise yeşil (0x2ecc71) yanacak!
+                let tabanRenk = isPreview ? 0x2ecc71 : 0x555555;
+                
+                const yanMat = new THREE.MeshStandardMaterial({ 
+                    color: tabanRenk,
+                    map: havanYanDoku, 
+                    transparent: true, 
+                    opacity: opacityVal 
+                });
+                const ustMat = new THREE.MeshStandardMaterial({ 
+                    color: tabanRenk,
+                    map: havanUstDoku, 
+                    transparent: true, 
+                    opacity: opacityVal 
+                });
                 
                 const materyaller = [
                     yanMat, yanMat, ustMat, yanMat, yanMat, yanMat
