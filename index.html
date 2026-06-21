@@ -10,16 +10,26 @@
         
         .input-group { position: relative; width: 90%; margin: 0 auto 15px auto; }
         input { padding: 12px; width: 100%; border-radius: 6px; border: 1px solid #555; background: #2b2b2b; color: white; font-size: 16px; box-sizing: border-box; }
+        .goz-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff9f43; cursor: pointer; font-size: 18px; padding: 0; }
         
-        .goz-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff9f43; cursor: pointer; font-size: 18px; padding: 0; width: auto; }
+        button.main-btn { padding: 12px 25px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 16px; width: 90%; }
         
-        button.main-btn { padding: 12px 25px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 16px; width: 90%; transition: 0.2s; }
-        button.main-btn:hover { background: #f39c12; }
-        
-        #ui-layer { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 10px; display: none; pointer-events: none; border: 1px solid #555; z-index: 5; }
+        /* UI Katmanları */
+        #ui-layer { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 10px; display: none; border: 1px solid #555; z-index: 5; pointer-events: none; }
         .stat { font-size: 16px; margin: 6px 0; font-weight: bold; }
         .gold { color: #f1c40f; }
         .elixir { color: #9b59b6; }
+        
+        /* Dükkan Butonu */
+        #shop-btn { position: absolute; bottom: 20px; left: 20px; background: #e74c3c; border: 2px solid #fff; padding: 15px 25px; font-size: 18px; font-weight: bold; color: white; border-radius: 10px; cursor: pointer; z-index: 5; }
+        
+        /* GLOBAL CHAT KUTUSU */
+        #chat-container { position: absolute; bottom: 20px; right: 20px; width: 280px; height: 220px; background: rgba(0,0,0,0.85); border-radius: 10px; border: 1px solid #ff9f43; z-index: 5; display: none; flex-direction: column; padding: 10px; }
+        #chat-messages { flex: 1; overflow-y: auto; font-size: 13px; text-align: left; margin-bottom: 5px; }
+        .chat-input-group { display: flex; }
+        #chat-input { flex: 1; padding: 8px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; }
+        #chat-send { background: #ff9f43; border: none; color: white; padding: 0 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -27,18 +37,14 @@
 <body>
 
     <div id="login-box" class="box">
-        <h2>⚔️ Clash Of Manyak ⚔️</h2>
-        <p style="color: #aaa; font-size: 14px;">Köy şifrenizi unutmayın, kalıcı olarak saklanır.</p>
-        
+        <h2>⚔️ Clash Of Manyak 3D ⚔️</h2>
         <div class="input-group">
             <input type="text" id="username" placeholder="Kullanıcı Adı...">
         </div>
-        
         <div class="input-group">
             <input type="password" id="password" placeholder="Şifre...">
             <button class="goz-btn" onclick="sifreyiGosterGizle()">👁️</button>
         </div>
-        
         <br>
         <button class="main-btn" onclick="sifreliGirisYap()">Köyüme Bağlan (3D)</button>
     </div>
@@ -47,12 +53,25 @@
         <div class="stat">Şef: <span id="ui-name" style="color:#54a0ff;"></span></div>
         <div class="stat gold">🪙 Altın: <span id="ui-gold">0</span></div>
         <div class="stat elixir">🧪 İksir: <span id="ui-elixir">0</span></div>
-        <div class="stat">🏛️ Belediye Binası: <span id="ui-th">1</span>. Lvl</div>
+        <div class="stat">🏛️ Belediye: <span id="ui-th">1</span>. Lvl</div>
+    </div>
+
+    <button id="shop-btn" style="display:none;" onclick="binaSatinAl()">🛒 DÜKKAN<br><span style="font-size:11px; color:#ddd;">Top Kur (500 Altın)</span></button>
+
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div class="chat-input-group">
+            <input type="text" id="chat-input" placeholder="Sohbete yaz...">
+            <button id="chat-send" onclick="mesajGonder()">Gönder</button>
+        </div>
     </div>
 
     <div id="canvas-container"></div>
 
     <script>
+        let oyuncu = null;
+        let scene, loader;
+
         function sifreyiGosterGizle() {
             const sifreInput = document.getElementById('password');
             sifreInput.type = (sifreInput.type === "password") ? "text" : "password";
@@ -61,8 +80,7 @@
         function sifreliGirisYap() {
             const isim = document.getElementById('username').value.trim();
             const sifre = document.getElementById('password').value;
-
-            if(!isim || !sifre) return alert("Kullanıcı adı ve şifre alanlarını doldurun!");
+            if(!isim || !sifre) return alert("Alanları doldurun!");
 
             fetch('/login', {
                 method: 'POST',
@@ -71,27 +89,96 @@
             })
             .then(res => res.json())
             .then(data => {
-                if(data.error) {
-                    alert(data.error);
-                } else {
-                    document.getElementById('login-box').style.display = 'none';
-                    document.getElementById('canvas-container').style.display = 'block';
-                    document.getElementById('ui-layer').style.display = 'block';
-                    
-                    document.getElementById('ui-name').innerText = data.player.username;
-                    document.getElementById('ui-gold').innerText = data.player.gold;
-                    document.getElementById('ui-elixir').innerText = data.player.elixir;
-                    document.getElementById('ui-th').innerText = data.player.town_hall;
-
-                    baslat3DHarita();
-                }
-            })
-            .catch(err => alert("Sunucuyla bağlantı kurulamadı!"));
+                if(data.error) return alert(data.error);
+                
+                oyuncu = data.player;
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('canvas-container').style.display = 'block';
+                document.getElementById('ui-layer').style.display = 'block';
+                document.getElementById('shop-btn').style.display = 'block';
+                document.getElementById('chat-container').style.display = 'flex';
+                
+                uiGuncelle();
+                baslat3DHarita();
+                
+                // Chat'i her 3 saniyede bir otomatik yenile
+                setInterval(chatYukle, 3000);
+                chatYukle();
+            });
         }
 
+        function uiGuncelle() {
+            document.getElementById('ui-name').innerText = oyuncu.username;
+            document.getElementById('ui-gold').innerText = oyuncu.gold;
+            document.getElementById('ui-elixir').innerText = oyuncu.elixir;
+            document.getElementById('ui-th').innerText = oyuncu.town_hall;
+        }
+
+        // BİNA SATIN ALMA / İNŞA ETME FONKSİYONU
+        function binaSatinAl() {
+            if(oyuncu.gold < 500) return alert("Yetersiz Altın! 500 Altın gerekiyor.");
+            
+            oyuncu.gold -= 500;
+            uiGuncelle();
+            
+            // Veritabanına yeni parayı kaydet
+            fetch('/update-resources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: oyuncu.username, gold: oyuncu.gold, elixir: oyuncu.elixir })
+            });
+
+            // Haritada rastgele bir konuma 3D Savunma Topu yerleştir
+            const x = (Math.random() * 14) - 7;
+            const z = (Math.random() * 14) - 7;
+            topKulesiInsaEt(x, z);
+        }
+
+        function topKulesiInsaEt(x, z) {
+            // Siyah/Gri Kanon Savunma Kulesi Küpü
+            const topGeo = new THREE.BoxGeometry(1.2, 2.2, 1.2);
+            const topMat = new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.4 });
+            const kule = new THREE.Mesh(topGeo, topMat);
+            kule.position.set(x, 1.1, z);
+            scene.add(kule);
+
+            // Kulenin üstüne küçük namlu (Küre)
+            const namlu = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshStandardMaterial({ color: 0x2c3e50 }));
+            namlu.position.set(x, 2.3, z);
+            scene.add(namlu);
+        }
+
+        // GLOBAL CHAT SİSTEMİ
+        function chatYukle() {
+            fetch('/chat')
+            .then(res => res.json())
+            .then(mesajlar => {
+                const kutu = document.getElementById('chat-messages');
+                kutu.innerHTML = mesajlar.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message} <span style="font-size:9px; color:#aaa;">${m.time}</span></div>`).join('');
+                kutu.scrollTop = kutu.scrollHeight;
+            });
+        }
+
+        function mesajGonder() {
+            const girdi = document.getElementById('chat-input');
+            const mesaj = girdi.value.trim();
+            if(!mesaj) return;
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: oyuncu.username, message: mesaj })
+            })
+            .then(() => {
+                girdi.value = "";
+                chatYukle();
+            });
+        }
+
+        // THREE.JS SAHNE MOTORU
         function baslat3DHarita() {
             const container = document.getElementById('canvas-container');
-            const scene = new THREE.Scene();
+            scene = new THREE.Scene();
             scene.background = new THREE.Color(0x2c3e50);
             
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -107,41 +194,28 @@
             isik.position.set(5, 15, 5);
             scene.add(isik);
 
-            // --- FOTOĞRAF YÜKLEME MOTORU ---
-            const loader = new THREE.TextureLoader();
+            loader = new THREE.TextureLoader();
             loader.crossOrigin = "anonymous";
 
-            // Çimen
             const cimenDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
-            cimenDoku.wrapS = THREE.RepeatWrapping;
-            cimenDoku.wrapT = THREE.RepeatWrapping;
-            cimenDoku.repeat.set(4, 4);
+            cimenDoku.wrapS = THREE.RepeatWrapping; cimenDoku.wrapT = THREE.RepeatWrapping; cimenDoku.repeat.set(4, 4);
 
-            // Eski Madenler
             const altinDoku = loader.load('https://r.resimlink.com/BxtsKAY.png');
             const iksirDoku = loader.load('https://r.resimlink.com/OSZVT90IfG.png');
-
-            // Yeni Belediye Binası Ahşapları
             const govdeAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhNIvNqD6ne531hKbJso48uu6Xpv1AzHuLqK8d1ygBGw&s=10');
             const catiAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv9uO_U72MdBbhA9fqa1GydbLtvZR-UdpRRwe2rkeZnw&s=10');
 
-            // --- HARİTA VE BİNALAR ---
-
-            // Çimen Harita
+            // Zemin
             const zemin = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 22), new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 }));
             scene.add(zemin);
 
-            // Fotoğraflı Belediye Binası Gövdesi
-            const binaGovdeMat = new THREE.MeshStandardMaterial({ map: govdeAhsapDoku, roughness: 0.7 });
-            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), binaGovdeMat);
+            // Belediye Binası
+            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: govdeAhsapDoku, roughness: 0.7 }));
             binaGovde.position.y = 1.45;
             scene.add(binaGovde);
 
-            // Fotoğraflı Belediye Binası Çatısı
-            const catiMat = new THREE.MeshStandardMaterial({ map: catiAhsapDoku, roughness: 0.7 });
-            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), catiMat);
-            cati.position.y = 3.6;
-            cati.rotation.y = Math.PI / 4;
+            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: catiAhsapDoku, roughness: 0.7 }));
+            cati.position.y = 3.6; cati.rotation.y = Math.PI / 4;
             scene.add(cati);
 
             // Altın Madeni
@@ -149,30 +223,23 @@
             altinKup.position.set(-5, 1, -4);
             scene.add(altinKup);
 
-            // İksir Sondajı
+            // İksir
             const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 16), new THREE.MeshStandardMaterial({ map: iksirDoku }));
             iksirSilindir.position.set(5, 1.2, -4);
             scene.add(iksirSilindir);
 
-            // Döndürme Kontrolleri
-            let tiklandi = false;
-            let eskiX = 0;
+            // Kontroller
+            let tiklandi = false; let eskiX = 0;
             window.addEventListener('mousedown', () => tiklandi = true);
             window.addEventListener('mouseup', () => tiklandi = false);
             window.addEventListener('mousemove', (e) => {
-                if(tiklandi) { scene.rotation.y += (e.clientX - eskiX) * 0.01; }
+                if(tiklandi && e.clientX < window.innerWidth - 300) { scene.rotation.y += (e.clientX - eskiX) * 0.01; } // Chat kutusuna basarken dönmesin
                 eskiX = e.clientX;
             });
             window.addEventListener('touchstart', (e) => { tiklandi = true; eskiX = e.touches[0].clientX; });
             window.addEventListener('touchend', () => tiklandi = false);
             window.addEventListener('touchmove', (e) => {
-                if(tiklandi) { scene.rotation.y += (e.touches[0].clientX - eskiX) * 0.01; eskiX = e.touches[0].clientX; }
-            });
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                if(tiklandi && eskiX < window.innerWidth - 300) { scene.rotation.y += (e.touches[0].clientX - eskiX) * 0.01; eskiX = e.touches[0].clientX; }
             });
 
             function renderDongusu() {
