@@ -8,11 +8,9 @@
         body { margin: 0; padding: 0; background-color: #1a1a1a; font-family: sans-serif; overflow: hidden; color: white; }
         .box { background: rgba(40, 40, 40, 0.95); padding: 25px; border-radius: 12px; max-width: 340px; margin: 120px auto; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.7); z-index: 10; position: relative; border: 2px solid #ff9f43; }
         
-        /* Giriş alanları için düzen */
         .input-group { position: relative; width: 90%; margin: 0 auto 15px auto; }
         input { padding: 12px; width: 100%; border-radius: 6px; border: 1px solid #555; background: #2b2b2b; color: white; font-size: 16px; box-sizing: border-box; }
         
-        /* Şifre Göz Butonu */
         .goz-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff9f43; cursor: pointer; font-size: 18px; padding: 0; width: auto; }
         
         button.main-btn { padding: 12px 25px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 16px; width: 90%; transition: 0.2s; }
@@ -55,17 +53,11 @@
     <div id="canvas-container"></div>
 
     <script>
-        // Şifre Gösterip Gizleme Fonksiyonu
         function sifreyiGosterGizle() {
             const sifreInput = document.getElementById('password');
-            if (sifreInput.type === "password") {
-                sifreInput.type = "text";
-            } else {
-                sifreInput.type = "password";
-            }
+            sifreInput.type = (sifreInput.type === "password") ? "text" : "password";
         }
 
-        // Giriş Yapma Fonksiyonu (Hata Düzeltildi!)
         function sifreliGirisYap() {
             const isim = document.getElementById('username').value.trim();
             const sifre = document.getElementById('password').value;
@@ -110,17 +102,34 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const isik = new THREE.DirectionalLight(0xffffff, 0.5);
+            // Güçlü Işık (Fotoğraflar net görünsün diye arttırdık)
+            scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+            const isik = new THREE.DirectionalLight(0xffffff, 0.6);
             isik.position.set(5, 15, 5);
             scene.add(isik);
 
-            // Çimen Harita
-            const zemin = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 22), new THREE.MeshStandardMaterial({ color: 0x27ae60 }));
+            // --- FOTOĞRAF YÜKLEME MOTORU (CORS Sorunsuz Linkler) ---
+            const loader = new THREE.TextureLoader();
+            loader.crossOrigin = "anonymous"; // Dışarıdan resim çekerken güvenlik hatasını engeller
+
+            const cimenDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
+            // Çimen resminin harita üzerinde tekrarlanarak şık durması için ayar:
+            cimenDoku.wrapS = THREE.RepeatWrapping;
+            cimenDoku.wrapT = THREE.RepeatWrapping;
+            cimenDoku.repeat.set(4, 4);
+
+            const altinDoku = loader.load('https://r.resimlink.com/BxtsKAY.png');
+            const iksirDoku = loader.load('https://r.resimlink.com/OSZVT90IfG.png');
+
+            // --- HARİTA VE BİNALAR ---
+
+            // Fotoğraflı Çimen Harita
+            const zeminMat = new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 });
+            const zemin = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 22), zeminMat);
             scene.add(zemin);
 
-            // 3D Belediye Binası
-            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ color: 0xc0392b }));
+            // 3D Belediye Binası (Şimdilik renkli, sonra buna da link buluruz!)
+            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.5 }));
             binaGovde.position.y = 1.45;
             scene.add(binaGovde);
 
@@ -129,14 +138,16 @@
             cati.rotation.y = Math.PI / 4;
             scene.add(cati);
 
-            // Altın Madeni
-            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshStandardMaterial({ color: 0xf1c40f }));
-            altinKup.position.set(-5, 0.8, -4);
+            // Fotoğraflı Altın Madeni
+            const altinMat = new THREE.MeshStandardMaterial({ map: altinDoku });
+            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), altinMat);
+            altinKup.position.set(-5, 1, -4);
             scene.add(altinKup);
 
-            // İksir Sondajı
-            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x8e44ad }));
-            iksirSilindir.position.set(5, 1, -4);
+            // Fotoğraflı İksir Sondajı
+            const iksirMat = new THREE.MeshStandardMaterial({ map: iksirDoku });
+            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 16), iksirMat);
+            iksirSilindir.position.set(5, 1.2, -4);
             scene.add(iksirSilindir);
 
             // Döndürme Kontrolleri
@@ -162,8 +173,8 @@
 
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
-                altinKup.rotation.y += 0.015;
-                iksirSilindir.rotation.y += 0.015;
+                altinKup.rotation.y += 0.01;
+                iksirSilindir.rotation.y += 0.01;
                 renderer.render(scene, camera);
             }
             renderDongusu();
