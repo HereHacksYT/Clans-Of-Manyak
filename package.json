@@ -1,13 +1,13 @@
 {
   "name": "clash-of-manyak",
   "version": "1.0.0",
-  "description": "Clash of Manyak Sunucusu",
+  "description": "Clash of Manyak Kalıcı 3D Sunucusu",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "mongoose": "^8.4.3"
+    "nedb-promises": "^6.2.1"
   }
 }
