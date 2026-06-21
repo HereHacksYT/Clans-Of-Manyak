@@ -124,7 +124,7 @@
             <div class="shop-category">⚔️ ASKERLER</div>
             <div class="scroll-wrapper">
                 <div class="shop-card" onclick="satinAlAsker('savasci', 250, event)">
-                    <div class="card-title">😎 Savaşçı (Ajan)</div>
+                    <div class="card-title">👑 Kral</div>
                     <div class="card-price">🧪 250 İksir</div>
                 </div>
                 <div class="shop-card" onclick="satinAlAsker('barbar', 150, event)">
@@ -132,7 +132,7 @@
                     <div class="card-price">🧪 150 İksir</div>
                 </div>
                 <div class="shop-card" onclick="satinAlAsker('okcu', 200, event)">
-                    <div class="card-title">🏹 Okçu</div>
+                    <div class="card-title">🏹 Kral Okçu</div>
                     <div class="card-price">🧪 200 İksir</div>
                 </div>
             </div>
@@ -180,10 +180,14 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // YENİ SAVAŞÇI ASKERİ KAPLAMALARI
-        const tSavasciOn = textureLoader.load('https://r.resimlink.com/fuYls-mEA6Wb.png');
-        const tSavasciArka = textureLoader.load('https://r.resimlink.com/2L8VeIps-jnr.png');
-        const tSavasciKilic = textureLoader.load('https://r.resimlink.com/lroVaDEBn2KT.png');
+        // KRAL (Savaşçı) Kaplamaları - Yeni fotoğraf
+        const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
+        const tKralArka = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
+        const tKralKilic = textureLoader.load('https://r.resimlink.com/lroVaDEBn2KT.png');
+
+        // KRAL OKÇU Kaplamaları - Yeni fotoğraf
+        const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
+        const tOkcuArka = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
 
         tCimen.wrapS = THREE.RepeatWrapping;
         tCimen.wrapT = THREE.RepeatWrapping;
@@ -266,6 +270,10 @@
                     for(let i=0; i<savasciSayisi; i++) {
                         askerYarat3D('savasci');
                     }
+                    let okcuSayisi = oyuncu.troops.okcu || 0;
+                    for(let i=0; i<okcuSayisi; i++) {
+                        askerYarat3D('okcu');
+                    }
                 }
                 
                 setInterval(chatYukle, 3000);
@@ -279,7 +287,7 @@
             document.getElementById('ui-elixir').innerText = oyuncu.elixir;
             document.getElementById('ui-th').innerText = oyuncu.town_hall;
             if(!oyuncu.troops) oyuncu.troops = { savasci: 0, barbar: 0, okcu: 0 };
-            document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.savasci || 0} Savaşçı | ${oyuncu.troops.barbar || 0} Barbar`;
+            document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.savasci || 0} Kral | ${oyuncu.troops.barbar || 0} Barbar | ${oyuncu.troops.okcu || 0} Kral Okçu`;
         }
 
         function koyuKaliciKaydet() {
@@ -307,37 +315,54 @@
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
-                // Ön ve arka için ince 2 katmanlı düzlem (Mesh) yapısı
+                // KRAL - Ön ve arka
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
-                let onMat = new THREE.MeshStandardMaterial({ map: tSavasciOn, transparent: true, side: THREE.FrontSide });
+                let onMat = new THREE.MeshStandardMaterial({ map: tKralOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
                 onMesh.position.z = 0.01;
                 askerGroup.add(onMesh);
 
                 let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
-                let arkaMat = new THREE.MeshStandardMaterial({ map: tSavasciArka, transparent: true, side: THREE.FrontSide });
+                let arkaMat = new THREE.MeshStandardMaterial({ map: tKralArka, transparent: true, side: THREE.FrontSide });
                 let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
                 arkaMesh.rotation.y = Math.PI;
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
 
-                // Efsanevi Kılıç
+                // Kılıç
                 let kilicGeo = new THREE.PlaneGeometry(0.2, 1.1);
-                let kilicMat = new THREE.MeshStandardMaterial({ map: tSavasciKilic, transparent: true, side: THREE.DoubleSide });
+                let kilicMat = new THREE.MeshStandardMaterial({ map: tKralKilic, transparent: true, side: THREE.DoubleSide });
                 let kilicMesh = new THREE.Mesh(kilicGeo, kilicMat);
                 kilicMesh.position.set(0.35, -0.1, 0.02);
                 kilicMesh.rotation.z = -Math.PI / 6;
                 askerGroup.add(kilicMesh);
 
-                // 🔥 SAVAŞÇIYI 5 KAT BÜYÜT (önce 2.5 sonra 2 kat daha = 5x) 🔥
+                // Kral 5 kat büyük
                 askerGroup.scale.set(5, 5, 5);
-                
-                // Yüksekliği ayarla - zeminin üzerinde dursun
-                askerGroup.position.y = 3.5; // Normalde 0.7 idi, 5x büyüdüğü için 5 katına çıkardık
+                askerGroup.position.y = 3.5;
+
+            } else if(tip === 'okcu') {
+                // KRAL OKÇU - Ön ve arka
+                let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
+                let onMat = new THREE.MeshStandardMaterial({ map: tOkcuOn, transparent: true, side: THREE.FrontSide });
+                let onMesh = new THREE.Mesh(onGeo, onMat);
+                onMesh.position.z = 0.01;
+                askerGroup.add(onMesh);
+
+                let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
+                let arkaMat = new THREE.MeshStandardMaterial({ map: tOkcuArka, transparent: true, side: THREE.FrontSide });
+                let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
+                arkaMesh.rotation.y = Math.PI;
+                arkaMesh.position.z = -0.01;
+                askerGroup.add(arkaMesh);
+
+                // Okçu 3 kat büyük
+                askerGroup.scale.set(3, 3, 3);
+                askerGroup.position.y = 2.1;
 
             } else {
-                // Varsayılan küçük küp askerler
-                let renk = (tip === 'okcu') ? 0xe74c3c : 0xf1c40f;
+                // Barbar - varsayılan küçük küp
+                let renk = 0xf1c40f;
                 let k = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: renk }));
                 askerGroup.add(k);
                 askerGroup.position.y = 0.7;
@@ -685,7 +710,6 @@
                 // ASKER ANİMASYONLARI VE KAMERAYA GÖRE DÖNME MANTIĞI
                 sahnedekiAskerler.forEach(asker => {
                     // Kamera açısına göre askerlerin sürekli kameraya doğru bakmasını sağlıyoruz (Billboard etkisi)
-                    // Böylece önü kameraya bakarken arkasına geçildiğinde arka kaplaması görünecek
                     asker.group.rotation.y = kameraAcisi;
 
                     // Küçük rastgele devriye hareketleri
