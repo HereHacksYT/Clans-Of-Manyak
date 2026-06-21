@@ -180,13 +180,13 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // KRAL (Savaşçı) Kaplamaları
+        // KRAL Kaplamaları
         const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
-        const tKralArka = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
+        const tKralArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
 
         // KRAL OKÇU Kaplamaları
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
-        const tOkcuArka = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
+        const tOkcuArka = textureLoader.load('https://r.resimlink.com/2SVFCM6B1N.png');
 
         tCimen.wrapS = THREE.RepeatWrapping;
         tCimen.wrapT = THREE.RepeatWrapping;
@@ -314,7 +314,7 @@
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
-                // KRAL - Ön ve arka (kılıç kaldırıldı, fotoğrafta zaten var)
+                // KRAL - Ön ve arka
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let onMat = new THREE.MeshStandardMaterial({ map: tKralOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
@@ -366,7 +366,15 @@
             askerGroup.position.z = Math.sin(rAci) * rUzaklik;
             
             scene.add(askerGroup);
-            sahnedekiAskerler.push({ group: askerGroup, tip: tip, hedefX: askerGroup.position.x, hedefZ: askerGroup.position.z, sayac: 0 });
+            sahnedekiAskerler.push({ 
+                group: askerGroup, 
+                tip: tip, 
+                hedefX: askerGroup.position.x, 
+                hedefZ: askerGroup.position.z, 
+                sayac: 0,
+                oncekiX: askerGroup.position.x,
+                oncekiZ: askerGroup.position.z
+            });
         }
 
         function secBina(tip, bedel, paraTipi, e) {
@@ -698,10 +706,21 @@
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
 
-                // ASKER ANİMASYONLARI VE KAMERAYA GÖRE DÖNME MANTIĞI
+                // ASKER ANİMASYONLARI - GİTTİĞİ YÖNE BAKMA
                 sahnedekiAskerler.forEach(asker => {
-                    // Kamera açısına göre askerlerin sürekli kameraya doğru bakmasını sağlıyoruz (Billboard etkisi)
-                    asker.group.rotation.y = kameraAcisi;
+                    // Hareket yönünü hesapla
+                    let dx = asker.group.position.x - asker.oncekiX;
+                    let dz = asker.group.position.z - asker.oncekiZ;
+                    
+                    // Eğer hareket ediyorsa, gittiği yöne dönsün
+                    if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
+                        let aci = Math.atan2(dx, dz);
+                        asker.group.rotation.y = aci;
+                    }
+                    
+                    // Önceki pozisyonu kaydet
+                    asker.oncekiX = asker.group.position.x;
+                    asker.oncekiZ = asker.group.position.z;
 
                     // Küçük rastgele devriye hareketleri
                     asker.sayac++;
