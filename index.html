@@ -10,40 +10,37 @@
         
         .input-group { position: relative; width: 90%; margin: 0 auto 15px auto; }
         input { padding: 12px; width: 100%; border-radius: 6px; border: 1px solid #555; background: #2b2b2b; color: white; font-size: 16px; box-sizing: border-box; }
-        .goz-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff9f43; cursor: pointer; font-size: 18px; }
+        
+        /* Göz butonunun tıklanabilir olması için z-index verdik ve yerini sabitledik */
+        .goz-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff9f43; cursor: pointer; font-size: 18px; z-index: 30; padding: 5px; }
+        
         button.main-btn { padding: 12px 25px; background: #ff9f43; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 16px; width: 90%; }
 
-        /* ÜÇ ÇİZGİ MENÜ BUTONU */
         #menu-toggle { position: absolute; top: 15px; right: 15px; background: #ff9f43; border: 2px solid white; color: white; font-size: 24px; padding: 5px 12px; border-radius: 8px; cursor: pointer; z-index: 15; display: none; }
         
-        /* SOL ÜST KAYNAK PANELİ */
         #ui-layer { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.85); padding: 12px; border-radius: 10px; display: none; border: 1px solid #555; z-index: 10; pointer-events: none; }
         .stat { font-size: 15px; margin: 4px 0; font-weight: bold; }
         .gold { color: #f1c40f; }
         .elixir { color: #9b59b6; }
 
-        /* AÇILIR ANA PANEL (SOHBET VE DÜKKAN SEÇENEKLERİ) */
         #main-panel { position: absolute; top: 70px; right: 15px; background: rgba(30,30,30,0.95); border: 2px solid #ff9f43; border-radius: 10px; width: 300px; padding: 15px; display: none; z-index: 14; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .tab-buttons { display: flex; margin-bottom: 10px; gap: 5px; }
         .tab-btn { flex: 1; padding: 8px; background: #444; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; }
         .tab-btn.active { background: #ff9f43; }
         
-        /* CHAT BÖLÜMÜ */
         #chat-section { display: none; flex-direction: column; height: 200px; }
         #chat-messages { flex: 1; overflow-y: auto; font-size: 13px; margin-bottom: 5px; background: #222; padding: 5px; border-radius: 4px; }
         .chat-input-group { display: flex; gap: 5px; }
         #chat-input { flex: 1; padding: 6px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; }
 
-        /* DÜKKAN BÖLÜMÜ (KAYDIRMALI KARTLAR) */
         #shop-section { display: none; }
         .shop-category { font-size: 14px; font-weight: bold; margin: 10px 0 5px 0; color: #ff9f43; text-align: left; }
         .scroll-wrapper { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 8px; scroll-behavior: smooth; }
         .shop-card { min-width: 110px; background: #444; padding: 10px; border-radius: 8px; border: 1px solid #666; text-align: center; cursor: pointer; transition: 0.2s; }
         .shop-card:hover { border-color: #ff9f43; background: #555; }
         .card-title { font-size: 13px; font-weight: bold; }
-        .card-price { font-size: 11px; margin-times: 3px; }
+        .card-price { font-size: 11px; margin-top: 3px; }
 
-        /* İNŞAAT UYARI PANELİ */
         #build-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(231, 76, 60, 0.9); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 2px solid white; display: none; z-index: 10; pointer-events: none; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
@@ -53,6 +50,7 @@
 </head>
 <body>
 
+    <!-- Giriş Kapısı -->
     <div id="login-box" class="box">
         <h2>⚔️ Clash Of Manyak ⚔️</h2>
         <div class="input-group">
@@ -60,14 +58,16 @@
         </div>
         <div class="input-group">
             <input type="password" id="password" placeholder="Şifre...">
-            <button class="goz-btn" onclick="sifreyiGosterGizle()">👁️</button>
+            <button type="button" class="goz-btn" onclick="sifreyiGosterGizle()">👁️</button>
         </div>
         <br>
-        <button class="main-btn" onclick="sifreliGirisYap()">Köyüme Bağlan (3D)</button>
+        <button type="button" class="main-btn" onclick="sifreliGirisYap()">Köyüme Bağlan (3D)</button>
     </div>
 
+    <!-- Üç Çizgi Menü Butonu -->
     <button id="menu-toggle" onclick="toggleMenu()">☰</button>
 
+    <!-- Sol Üst Kaynak Arayüzü -->
     <div id="ui-layer">
         <div class="stat">Şef: <span id="ui-name" style="color:#54a0ff;"></span></div>
         <div class="stat gold">🪙 Altın: <span id="ui-gold">0</span></div>
@@ -76,14 +76,17 @@
         <div id="troop-counts" style="font-size:11px; color:#aaa; margin-top:5px;"></div>
     </div>
 
+    <!-- İnşaat Modu Uyarı Bandı -->
     <div id="build-overlay">🔨 İNŞAAT MODU: Haritada kare bir yere tıklayıp kurun!</div>
 
+    <!-- Sağdan Açılan Ana Panel -->
     <div id="main-panel">
         <div class="tab-buttons">
             <button class="tab-btn active" id="btn-shop" onclick="switchTab('shop')">🛒 Dükkan</button>
             <button class="tab-btn" id="btn-chat" onclick="switchTab('chat')">💬 Sohbet</button>
         </div>
 
+        <!-- SOHBET -->
         <div id="chat-section">
             <div id="chat-messages"></div>
             <div class="chat-input-group">
@@ -92,20 +95,21 @@
             </div>
         </div>
 
+        <!-- DÜKKAN (Kaydırmalı Kartlar) -->
         <div id="shop-section">
             <div class="shop-category">🏢 BİNALAR</div>
             <div class="scroll-wrapper">
                 <div class="shop-card" onclick="secBina('kanon', 600, 'gold')">
                     <div class="card-title">💣 Kanon Topu</div>
-                    <div class="card-price class='gold'">🪙 600 Altın</div>
+                    <div class="card-price">🪙 600 Altın</div>
                 </div>
                 <div class="shop-card" onclick="secBina('kisla', 800, 'elixir')">
                     <div class="card-title">⛺ Asker Kışlası</div>
-                    <div class="card-price class='elixir'">🧪 800 İksir</div>
+                    <div class="card-price">🧪 800 İksir</div>
                 </div>
                 <div class="shop-card" onclick="secBina('duvar', 100, 'gold')">
                     <div class="card-title">🧱 Defans Duvarı</div>
-                    <div class="card-price class='gold'">🪙 100 Altın</div>
+                    <div class="card-price">🪙 100 Altın</div>
                 </div>
             </div>
 
@@ -113,11 +117,11 @@
             <div class="scroll-wrapper">
                 <div class="shop-card" onclick="satinAlAsker('barbar', 150)">
                     <div class="card-title">🦁 Barbar</div>
-                    <div class="card-price class='elixir'">🧪 150 İksir</div>
+                    <div class="card-price">🧪 150 İksir</div>
                 </div>
                 <div class="shop-card" onclick="satinAlAsker('okcu', 200)">
                     <div class="card-title">🏹 Okçu</div>
-                    <div class="card-price class='elixir'">🧪 200 İksir</div>
+                    <div class="card-price">🧪 200 İksir</div>
                 </div>
             </div>
         </div>
@@ -126,8 +130,12 @@
     <div id="canvas-container"></div>
 
     <script>
+        // Küresel Değişkenleri Güvenli Tanımlayalım
         let oyuncu = null;
-        let scene, camera, renderer, zeminMesh;
+        let scene = null;
+        let camera = null;
+        let renderer = null;
+        let zeminMesh = null;
         let insaatModu = false;
         let seciliInsaatTipi = null;
         let insaatBedeli = 0;
@@ -136,9 +144,14 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
+        // ŞİFRE GÖSTER GİZLE (KESİN ÇÖZÜM: z-index ve tip kontrolü düzeltildi)
         function sifreyiGosterGizle() {
             const sifreInput = document.getElementById('password');
-            sifreInput.type = (sifreInput.type === "password") ? "text" : "password";
+            if(sifreInput.type === "password") {
+                sifreInput.type = "text";
+            } else {
+                sifreInput.type = "password";
+            }
         }
 
         function toggleMenu() {
@@ -162,6 +175,7 @@
             }
         }
 
+        // KÖYE BAĞLAN BUTONU FONKSİYONU
         function sifreliGirisYap() {
             const isim = document.getElementById('username').value.trim();
             const sifre = document.getElementById('password').value;
@@ -186,21 +200,25 @@
                 uiGuncelle();
                 baslat3DHarita();
                 
-                // Eski binaları haritaya tekrar diz
-                oyuncu.buildings.forEach(b => 3DBinaKoySahnede(b.type, b.x, b.z));
+                if(oyuncu.buildings && oyuncu.buildings.length > 0) {
+                    oyuncu.buildings.forEach(b => binaKoySahnede3D(b.type, b.x, b.z));
+                }
                 
                 setInterval(chatYukle, 3000);
-            });
+            })
+            .catch(err => alert("Sunucu bağlantı hatası!"));
         }
 
         function uiGuncelle() {
             document.getElementById('ui-gold').innerText = oyuncu.gold;
             document.getElementById('ui-elixir').innerText = oyuncu.elixir;
             document.getElementById('ui-th').innerText = oyuncu.town_hall;
-            document.getElementById('troop-counts').innerHTML = `Ordu: ${oyuncu.troops.barbar || 0} Barbar | ${oyuncu.troops.okcu || 0} Okçu`;
+            const bSayi = oyuncu.troops.barbar || 0;
+            const oSayi = oyuncu.troops.okcu || 0;
+            document.getElementById('troop-counts').innerHTML = `Ordu: ${bSayi} Barbar | ${oSayi} Okçu`;
         }
 
-        function köyüKalıcıKaydet() {
+        function koyuKaliciKaydet() {
             fetch('/save-village', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -208,17 +226,16 @@
             });
         }
 
-        // ASKER SATIN ALMA
         function satinAlAsker(tip, bedel) {
             if(oyuncu.elixir < bedel) return alert("Yetersiz İksir!");
             oyuncu.elixir -= bedel;
+            if(!oyuncu.troops) oyuncu.troops = { barbar: 0, okcu: 0 };
             if(!oyuncu.troops[tip]) oyuncu.troops[tip] = 0;
             oyuncu.troops[tip]++;
             uiGuncelle();
-            köyüKalıcıKaydet();
+            koyuKaliciKaydet();
         }
 
-        // DÜKKANDAN BİNA SEÇME (KARE KARE YERLEŞTİRME MODUNU AÇAR)
         function secBina(tip, bedel, paraTipi) {
             if(paraTipi === 'gold' && oyuncu.gold < bedel) return alert("Yetersiz Altın!");
             if(paraTipi === 'elixir' && oyuncu.elixir < bedel) return alert("Yetersiz İksir!");
@@ -229,14 +246,12 @@
             insaatModu = true;
             
             document.getElementById('build-overlay').style.display = 'block';
-            toggleMenu(); // Dükkanı kapat harita görünsün
+            toggleMenu(); 
         }
 
-        // TIKLANAN KAREYE BİNAYI GERÇEKÇİ KOYMA MOTORU
         function haritayaTiklandi(event) {
             if(!insaatModu) return;
 
-            // Ekran koordinatlarını 3D dünya koordinatlarına dönüştür
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -245,34 +260,28 @@
 
             if (intersections.length > 0) {
                 const p = intersections[0].point;
-                
-                // Tam kare kare (Grid - 1x1) oturması için matematiksel yuvarlama yapıyoruz
                 const gridX = Math.round(p.x);
                 const gridZ = Math.round(p.z);
 
-                // Belediye Binasının tam üstüne kurmayı engelle (Merkez koruması)
                 if(Math.abs(gridX) <= 2 && Math.abs(gridZ) <= 2) return alert("Belediye binasının üzerine inşaat yapamazsınız!");
 
-                // Parayı Düş
                 if(insaatParaTipi === 'gold') oyuncu.gold -= insaatBedeli;
                 else oyuncu.elixir -= insaatBedeli;
 
-                // Veriyi listeye ekle
+                if(!oyuncu.buildings) oyuncu.buildings = [];
                 oyuncu.buildings.push({ type: seciliInsaatTipi, x: gridX, z: gridZ });
                 
-                // 3D Sahneye Ekle
-                3DBinaKoySahnede(seciliInsaatTipi, gridX, gridZ);
+                binaKoySahnede3D(seciliInsaatTipi, gridX, gridZ);
                 
-                // İnşaat modundan çık
                 insaatModu = false;
                 document.getElementById('build-overlay').style.display = 'none';
                 
                 uiGuncelle();
-                köyüKalıcıKaydet();
+                koyuKaliciKaydet();
             }
         }
 
-        function 3DBinaKoySahnede(tip, x, z) {
+        function binaKoySahnede3D(tip, x, z) {
             let meshGroup = new THREE.Group();
 
             if(tip === 'kanon') {
@@ -297,14 +306,13 @@
             scene.add(meshGroup);
         }
 
-        // CHAT
         function chatYukle() {
             if(document.getElementById('chat-section').style.display === 'none') return;
             fetch('/chat').then(res => res.json()).then(mesajlar => {
                 const kutu = document.getElementById('chat-messages');
                 kutu.innerHTML = mesajlar.map(m => `<div><b style="color:#ff9f43;">${m.username}:</b> ${m.message}</div>`).join('');
                 kutu.scrollTop = kutu.scrollHeight;
-            });
+            }).catch(() => {});
         }
 
         function mesajGonder() {
@@ -317,7 +325,6 @@
             }).then(() => { girdi.value = ""; chatYukle(); });
         }
 
-        // THREE.JS KURULUMU
         function baslat3DHarita() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
@@ -329,40 +336,39 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            container.innerHTML = ""; // Container'ı temizle
             container.appendChild(renderer.domElement);
 
-            // Haritaya tıklama olayını bağlıyoruz
             window.addEventListener('click', haritayaTiklandi);
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
             const isik = new THREE.DirectionalLight(0xffffff, 0.5); isik.position.set(5, 15, 5); scene.add(isik);
 
-            const loader = new THREE.TextureLoader(); loader.crossOrigin = "anonymous";
-            const cimenDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
+            // Resim yükleyiciyi lokal olarak güvenle çalıştırıyoruz
+            const tLoader = new THREE.TextureLoader(); 
+            tLoader.crossOrigin = "anonymous";
+            
+            const cimenDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
             cimenDoku.wrapS = THREE.RepeatWrapping; cimenDoku.wrapT = THREE.RepeatWrapping; cimenDoku.repeat.set(5, 5);
 
-            const altinDoku = loader.load('https://r.resimlink.com/BxtsKAY.png');
-            const iksirDoku = loader.load('https://r.resimlink.com/OSZVT90IfG.png');
-            const govdeAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhNIvNqD6ne531hKbJso48uu6Xpv1AzHuLqK8d1ygBGw&s=10');
-            const catiAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv9uO_U72MdBbhA9fqa1GydbLtvZR-UdpRRwe2rkeZnw&s=10');
+            const altinDoku = tLoader.load('https://r.resimlink.com/BxtsKAY.png');
+            const iksirDoku = tLoader.load('https://r.resimlink.com/OSZVT90IfG.png');
+            const govdeAhsapDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhNIvNqD6ne531hKbJso48uu6Xpv1AzHuLqK8d1ygBGw&s=10');
+            const catiAhsapDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv9uO_U72MdBbhA9fqa1GydbLtvZR-UdpRRwe2rkeZnw&s=10');
 
-            // Büyük Çimen Zemin Mesh (Tıklamaları yakalamak için global değişkene aldık)
             zeminMesh = new THREE.Mesh(new THREE.BoxGeometry(26, 0.2, 26), new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 }));
             scene.add(zeminMesh);
 
-            // Merkezdeki Sabit Belediye Binası
             const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: govdeAhsapDoku }));
             binaGovde.position.y = 1.35; scene.add(binaGovde);
             const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: catiAhsapDoku }));
             cati.position.y = 3.5; cati.rotation.y = Math.PI / 4; scene.add(cati);
 
-            // Sabit Madenler
             const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: altinDoku }));
             altinKup.position.set(-6, 0.8, -6); scene.add(altinKup);
             const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: iksirDoku }));
             iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
 
-            // Kamerayı döndürme (İnşaat modu açıkken veya menüye basarken harita dönmez, rahat kurulur)
             let tiklandi = false; let eskiX = 0;
             window.addEventListener('mousedown', () => tiklandi = true);
             window.addEventListener('mouseup', () => tiklandi = false);
