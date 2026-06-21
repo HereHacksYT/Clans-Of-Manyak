@@ -102,51 +102,55 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            // Güçlü Işık (Fotoğraflar net görünsün diye arttırdık)
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
             const isik = new THREE.DirectionalLight(0xffffff, 0.6);
             isik.position.set(5, 15, 5);
             scene.add(isik);
 
-            // --- FOTOĞRAF YÜKLEME MOTORU (CORS Sorunsuz Linkler) ---
+            // --- FOTOĞRAF YÜKLEME MOTORU ---
             const loader = new THREE.TextureLoader();
-            loader.crossOrigin = "anonymous"; // Dışarıdan resim çekerken güvenlik hatasını engeller
+            loader.crossOrigin = "anonymous";
 
+            // Çimen
             const cimenDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
-            // Çimen resminin harita üzerinde tekrarlanarak şık durması için ayar:
             cimenDoku.wrapS = THREE.RepeatWrapping;
             cimenDoku.wrapT = THREE.RepeatWrapping;
             cimenDoku.repeat.set(4, 4);
 
+            // Eski Madenler
             const altinDoku = loader.load('https://r.resimlink.com/BxtsKAY.png');
             const iksirDoku = loader.load('https://r.resimlink.com/OSZVT90IfG.png');
 
+            // Yeni Belediye Binası Ahşapları
+            const govdeAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhNIvNqD6ne531hKbJso48uu6Xpv1AzHuLqK8d1ygBGw&s=10');
+            const catiAhsapDoku = loader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRv9uO_U72MdBbhA9fqa1GydbLtvZR-UdpRRwe2rkeZnw&s=10');
+
             // --- HARİTA VE BİNALAR ---
 
-            // Fotoğraflı Çimen Harita
-            const zeminMat = new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 });
-            const zemin = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 22), zeminMat);
+            // Çimen Harita
+            const zemin = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 22), new THREE.MeshStandardMaterial({ map: cimenDoku, roughness: 0.9 }));
             scene.add(zemin);
 
-            // 3D Belediye Binası (Şimdilik renkli, sonra buna da link buluruz!)
-            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ color: 0xc0392b, roughness: 0.5 }));
+            // Fotoğraflı Belediye Binası Gövdesi
+            const binaGovdeMat = new THREE.MeshStandardMaterial({ map: govdeAhsapDoku, roughness: 0.7 });
+            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), binaGovdeMat);
             binaGovde.position.y = 1.45;
             scene.add(binaGovde);
 
-            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ color: 0xd35400 }));
+            // Fotoğraflı Belediye Binası Çatısı
+            const catiMat = new THREE.MeshStandardMaterial({ map: catiAhsapDoku, roughness: 0.7 });
+            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), catiMat);
             cati.position.y = 3.6;
             cati.rotation.y = Math.PI / 4;
             scene.add(cati);
 
-            // Fotoğraflı Altın Madeni
-            const altinMat = new THREE.MeshStandardMaterial({ map: altinDoku });
-            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), altinMat);
+            // Altın Madeni
+            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.6), new THREE.MeshStandardMaterial({ map: altinDoku }));
             altinKup.position.set(-5, 1, -4);
             scene.add(altinKup);
 
-            // Fotoğraflı İksir Sondajı
-            const iksirMat = new THREE.MeshStandardMaterial({ map: iksirDoku });
-            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 16), iksirMat);
+            // İksir Sondajı
+            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2, 16), new THREE.MeshStandardMaterial({ map: iksirDoku }));
             iksirSilindir.position.set(5, 1.2, -4);
             scene.add(iksirSilindir);
 
