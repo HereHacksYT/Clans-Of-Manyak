@@ -157,7 +157,6 @@
         let uiTiklamaKilidi = false;
         let sahnedekiBinalar = [];
 
-        // Havan Dokuları İçin Global Değişkenler
         let havanYanDoku = null, havanUstDoku = null;
 
         const raycaster = new THREE.Raycaster();
@@ -168,7 +167,7 @@
         }
 
         function binalarinFiyatiniBul(tip) {
-            if(tip === 'kanon') return { bedel: 600, tip: 'gold' }; // Veritabanı uyumluluğu için tip anahtarı 'kanon' kaldı
+            if(tip === 'kanon') return { bedel: 600, tip: 'gold' };
             if(tip === 'kisla') return { bedel: 800, tip: 'elixir' };
             if(tip === 'duvar') return { bedel: 100, tip: 'gold' };
             return { bedel: 0, tip: 'gold' };
@@ -402,20 +401,12 @@
             let opacityVal = isPreview ? 0.6 : 1.0;
             let transVal = isPreview;
 
-            // KANON ARTIK HAVAN YAPILDI VE GÖNDERDİĞİN DOKULAR GIYDIRILDI
             if(tip === 'kanon') {
-                // Küpün her yüzüne ayrı malzeme (Sağ, Sol, Üst, Alt, Ön, Arka)
-                // Üst yüze (indis 2) namlu resmi, yan yüzlere ise yan taş resmi yerleştiriliyor
                 const yanMat = new THREE.MeshStandardMaterial({ map: havanYanDoku, transparent: transVal, opacity: opacityVal });
                 const ustMat = new THREE.MeshStandardMaterial({ map: havanUstDoku, transparent: transVal, opacity: opacityVal });
                 
                 const materyaller = [
-                    yanMat, // Sağ
-                    yanMat, // Sol
-                    ustMat, // Üst (Namlu Ağzı)
-                    yanMat, // Alt
-                    yanMat, // Ön
-                    yanMat  // Arka
+                    yanMat, yanMat, ustMat, yanMat, yanMat, yanMat
                 ];
 
                 const havanGövde = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), materyaller);
@@ -488,8 +479,6 @@
             const tLoader = new THREE.TextureLoader(); 
             tLoader.crossOrigin = "anonymous";
             
-            // Yeni Havan Resimleri Yükleniyor
-            havanYanDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10'); // Fallback veya resimlink proxy linki entegrasyonu
             havanYanDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/VrJl40sboA.jpeg'));
             havanUstDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/itHIsPM.png'));
 
@@ -546,7 +535,6 @@
                 if (uiTiklamaKilidi) return;
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
                 if(tiklandi && !panelAcik && e.clientX < window.innerWidth - 60) { 
-                    let fark = e.clientX - esKIX = e.clientX;
                     let mFark = e.clientX - eskiX;
                     if(Math.abs(mFark) > 4) {
                         suruklendiMi = true; 
