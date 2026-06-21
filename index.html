@@ -41,8 +41,8 @@
 
         #build-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(44, 62, 80, 0.95); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 2px solid #ff9f43; display: none; z-index: 10; pointer-events: none; }
         
-        #confirm-panel { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 999; display: none; gap: 15px; }
-        .confirm-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; border: 2px solid white; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.5); pointer-events: auto; }
+        #confirm-panel { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 9999; display: none; gap: 15px; }
+        .confirm-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; border: 2px solid white; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         #btn-yes { background: #2ecc71; }
         #btn-no { background: #e74c3c; }
 
@@ -77,7 +77,7 @@
 
     <div id="build-overlay">🔨 Yer seçin (Haritaya dokunun)</div>
 
-    <div id="confirm-panel">
+    <div id="confirm-panel" onclick="event.stopPropagation()">
         <button id="btn-yes" class="confirm-btn" onclick="insaatiOnayla(event)">✅ Kurulumu Onayla</button>
         <button id="btn-no" class="confirm-btn" onclick="insaatiIptalEt(event)">❌ İptal</button>
     </div>
@@ -250,12 +250,14 @@
             toggleMenu(); 
         }
 
-        function haritayaTiklandi(event) {
+        function haritayaTiklandi(clientX, clientY) {
             if(!insaatModu) return;
-            if(event.clientY < 60 && event.clientX > window.innerWidth - 60) return; 
+            
+            // Eğer sağ üst köşedeki menü butonuna basılıyorsa inşaatı tetikleme
+            if(clientY < 60 && clientX > window.innerWidth - 60) return; 
 
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
             const intersections = raycaster.intersectObject(zeminMesh);
@@ -365,10 +367,6 @@
             container.innerHTML = ""; 
             container.appendChild(renderer.domElement);
 
-            // Tıklama dinleyicisini harita açıldıktan sonra buraya bağlıyoruz
-            window.removeEventListener('click', haritayaTiklandi);
-            window.addEventListener('click', haritayaTiklandi);
-
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
             const isik = new THREE.DirectionalLight(0xffffff, 0.5); isik.position.set(5, 15, 5); scene.add(isik);
 
@@ -401,23 +399,58 @@
             const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: iksirDoku }));
             iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
 
-            let tiklandi = false; let eskiX = 0;
-            window.addEventListener('mousedown', () => tiklandi = true);
-            window.addEventListener('mouseup', () => tiklandi = false);
+            let tiklandi = false; 
+            let eskiX = 0;
+            let suruklendiMi = false; // Tıklama ile kaydırmayı ayırmak için
+
+            window.addEventListener('mousedown', (e) => {
+                tiklandi = true;
+                eskiX = e.clientX;
+                suruklendiMi = false;
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                tiklandi = false;
+                // Eğer parmak/fare sürüklenmediyse, bu düz bir tıklamadır; bina yerleştir!
+                if (!suruklendiMi && insaatModu) {
+                    haritayaTiklandi(e.clientX, e.clientY);
+                }
+            });
+
             window.addEventListener('mousemove', (e) => {
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
-                if(tiklandi && !insaatModu && !panelAcik && e.clientX < window.innerWidth - 60) { 
-                    scene.rotation.y += (e.clientX - eskiX) * 0.008; 
+                if(tiklandi && !panelAcik && e.clientX < window.innerWidth - 60) { 
+                    let fark = e.clientX - eskiX;
+                    if(Math.abs(fark) > 3) {
+                        suruklendiMi = true; // Sürükleme yapıldığını işaretle
+                    }
+                    scene.rotation.y += fark * 0.008; 
                 }
                 eskiX = e.clientX;
             });
 
-            window.addEventListener('touchstart', (e) => { tiklandi = true; eskiX = e.touches[0].clientX; });
-            window.addEventListener('touchend', () => tiklandi = false);
+            // MOBİL DOKUNMATİK DESTEĞİ
+            window.addEventListener('touchstart', (e) => { 
+                tiklandi = true; 
+                eskiX = e.touches[0].clientX;
+                suruklendiMi = false;
+            });
+
+            window.addEventListener('touchend', (e) => { 
+                tiklandi = false;
+                if (!suruklendiMi && insaatModu && e.changedTouches.length > 0) {
+                    haritayaTiklandi(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                }
+            });
+
             window.addEventListener('touchmove', (e) => {
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
-                if(tiklandi && !insaatModu && !panelAcik) {
-                    scene.rotation.y += (e.touches[0].clientX - eskiX) * 0.008;
+                if(tiklandi && !panelAcik) {
+                    let fark = e.touches[0].clientX - eskiX;
+                    if(Math.abs(fark) > 3) {
+                        suruklendiMi = true;
+                    }
+                    scene.rotation.y += fark * 0.008;
                     eskiX = e.touches[0].clientX;
                 }
             });
