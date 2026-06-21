@@ -157,17 +157,20 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // GÖNDERDİĞİN LINKS VE DOKU YÜKLEYİCİ
         const textureLoader = new THREE.TextureLoader();
         textureLoader.crossOrigin = 'anonymous';
 
+        // Gelen Eski Kaplamalar
         const tDuvar = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQqDLEmZjapvmdpkiW2FIeenQCNcVWbvaVzZt6zjOg4HQ&s=10');
         const tCati = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKR3Nq0LWDaLT-hnfp2NBGe5fL-JJHUWMKAVI6oH8EPw&s=10');
         const tAltin = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThduaLVkSXzsAifkp9ZjlYDpPNFkcIrJEij_VMI3F5ZQ&s=10');
         const tIksir = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVNPabxvMM6ntgbAVHWh5G3xtWnGh_VE_Qd6iP15940Q&s=10');
         const tCimen = textureLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnNoOwOCthIBCa2Tlz6rxf6RgMuN_v5OiZdFNqg4m1mg&s=10');
 
-        // Çimen kaplamasının tekrar etmesi için ayar
+        // YENİ GÖNDERDİĞİN HAVAN KAPLAMALARI
+        const tHavanGovde = textureLoader.load('https://r.resimlink.com/EVmz-vsnu.jpeg');
+        const tHavanNamlu = textureLoader.load('https://r.resimlink.com/zNfTnKJGg.png');
+
         tCimen.wrapS = THREE.RepeatWrapping;
         tCimen.wrapT = THREE.RepeatWrapping;
         tCimen.repeat.set(5, 5);
@@ -377,7 +380,7 @@
             if(insaatParaTipi === 'gold') oyuncu.gold -= insaatBedeli;
             else oyuncu.elixir -= insaatBedeli;
 
-            if(!oyuncu.buildings) oyuncu.buildings = [];
+            if(!oyuncu.buildings) { oyuncu.buildings = []; }
             oyuncu.buildings.push({ type: seciliInsaatTipi, x: geciciX, z: geciciZ });
             
             binaKoySahnede3D(seciliInsaatTipi, geciciX, geciciZ, false);
@@ -406,29 +409,37 @@
             setTimeout(() => { uiKilitle(false); }, 500);
         }
 
-        // BİNALARA KENDİ SEÇTİĞİN KAPLAMALARI GİYDİRİYORUZ
         function binaKoySahnede3D(tip, x, z, isPreview) {
             let meshGroup = new THREE.Group();
 
             if(tip === 'kanon') {
-                // Havan Gövdesi (Duvar Kaplamalı)
-                let havanGövde = new THREE.Mesh(
-                    new THREE.BoxGeometry(1.2, 1.2, 1.2), 
-                    new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                // TAM İSTEDİĞİN GİBİ BLOKLU/KÜP HAVAN MODELİ
+                
+                // 1. Her tarafı işlemeli olan alt küp gövde
+                let havanKupGovde = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.4, 1.0, 1.4), 
+                    new THREE.MeshStandardMaterial({ map: tHavanGovde, roughness: 0.5, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
                 );
-                havanGövde.position.y = 0.6;
-                meshGroup.add(havanGövde);
+                havanKupGovde.position.y = 0.5;
+                meshGroup.add(havanKupGovde);
 
-                // Namlu
-                let namlu = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.4, 0.4, 0.4, 8),
-                    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })
+                // 2. Üstüne dümdüz metal plaka katmanı
+                let duzPlaka = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.2, 0.1, 1.2),
+                    new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
                 );
-                namlu.position.set(0, 1.25, 0);
-                meshGroup.add(namlu);
+                duzPlaka.position.y = 1.05;
+                meshGroup.add(duzPlaka);
+
+                // 3. En üste yivli iç boşluk kaplamalı namlu silindiri
+                let yivliNamlu = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.45, 0.45, 0.4, 16),
+                    new THREE.MeshStandardMaterial({ map: tHavanNamlu, roughness: 0.4, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                );
+                yivliNamlu.position.set(0, 1.25, 0);
+                meshGroup.add(yivliNamlu);
             } 
             else if(tip === 'kisla') {
-                // Kışla Çadırı (Doku kaplamalı çadır çatısı)
                 const cadir = new THREE.Mesh(
                     new THREE.ConeGeometry(0.8, 1.5, 4), 
                     new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
@@ -437,7 +448,6 @@
                 meshGroup.add(cadir);
             }
             else if(tip === 'duvar') {
-                // Defans Duvarı (Duvar Kaplamalı)
                 const blok = new THREE.Mesh(
                     new THREE.BoxGeometry(0.9, 0.9, 0.9), 
                     new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.7, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
@@ -498,7 +508,6 @@
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
             const isik = new THREE.DirectionalLight(0xffffff, 0.7); isik.position.set(5, 15, 5); scene.add(isik);
 
-            // ÇİMEN KAPLAMALI ZEMİN
             zeminMesh = new THREE.Mesh(
                 new THREE.BoxGeometry(26, 0.2, 26), 
                 new THREE.MeshStandardMaterial({ map: tCimen, roughness: 0.9 })
@@ -511,17 +520,16 @@
             gridHelper.visible = false; 
             scene.add(gridHelper);
 
-            // BELEDİYE BİNASI (Alt Duvar Kaplamalı, Çatı ise Çatı Kaplamalı)
+            // BELEDİYE BİNASI
             const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.6 }));
             binaGovde.position.y = 1.25; scene.add(binaGovde);
             const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6 }));
             cati.position.y = 3.4; cati.rotation.y = Math.PI / 4; scene.add(cati);
 
-            // ALTIN DEPOSU (Altın Kaplamalı ve HAREKETSİZ)
+            // HAREKETSİZ DEPOLAR
             const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: tAltin, roughness: 0.4 }));
             altinKup.position.set(-6, 0.75, -6); scene.add(altinKup);
             
-            // İKSİR DEPOSU (İksir Kaplamalı ve HAREKETSİZ)
             const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: tIksir, roughness: 0.4 }));
             iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
 
@@ -537,10 +545,7 @@
             });
 
             window.addEventListener('mouseup', (e) => {
-                if (uiTiklamaKilidi) {
-                    tiklandi = false;
-                    return;
-                }
+                if (uiTiklamaKilidi) { tiklandi = false; return; }
                 tiklandi = false;
                 if (!suruklendiMi && (insaatModu || yikimModu)) {
                     haritayaTiklandi(e.clientX, e.clientY);
@@ -552,9 +557,7 @@
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
                 if(tiklandi && !panelAcik && e.clientX < window.innerWidth - 60) { 
                     let mFark = e.clientX - eskiX;
-                    if(Math.abs(mFark) > 4) {
-                        suruklendiMi = true; 
-                    }
+                    if(Math.abs(mFark) > 4) { suruklendiMi = true; }
                     kameraAcisi -= mFark * 0.007; 
                     kameraPozisyonunuGuncelle();
                 }
@@ -569,10 +572,7 @@
             });
 
             window.addEventListener('touchend', (e) => { 
-                if (uiTiklamaKilidi) {
-                    tiklandi = false;
-                    return;
-                }
+                if (uiTiklamaKilidi) { tiklandi = false; return; }
                 tiklandi = false;
                 if (!suruklendiMi && (insaatModu || yikimModu) && e.changedTouches.length > 0) {
                     haritayaTiklandi(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -584,9 +584,7 @@
                 const panelAcik = document.getElementById('main-panel').style.display === "block";
                 if(tiklandi && !panelAcik) {
                     let fark = e.touches[0].clientX - eskiX;
-                    if(Math.abs(fark) > 4) {
-                        suruklendiMi = true;
-                    }
+                    if(Math.abs(fark) > 4) { suruklendiMi = true; }
                     kameraAcisi -= fark * 0.007;
                     kameraPozisyonunuGuncelle();
                     eskiX = e.touches[0].clientX;
@@ -600,7 +598,6 @@
 
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
-                // DÖNME EFEKTLERİ TAMAMEN KALDIRILDI, DEPOLAR SABİT DURUYOR
                 renderer.render(scene, camera);
             }
             renderDongusu();
