@@ -157,7 +157,7 @@
         let uiTiklamaKilidi = false;
         let sahnedekiBinalar = [];
 
-        let havanYanDoku = null, havanUstDoku = null;
+        let havanYanDoku = null, havanUstDoku = null, duvarTasDoku = null;
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -402,13 +402,11 @@
             if(tip === 'kanon') {
                 let havanGövde;
                 if (isPreview) {
-                    // Yeşil, yarı saydam ve net kare önizleme küpü
                     havanGövde = new THREE.Mesh(
                         new THREE.BoxGeometry(1.2, 1.2, 1.2), 
                         new THREE.MeshBasicMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.6 })
                     );
                 } else {
-                    // MeshBasicMaterial kullanarak siyah kalma sorununu tamamen çözüyoruz. Doku gelmese bile taş rengi (0x7f8c8d) kalacak.
                     havanGövde = new THREE.Mesh(
                         new THREE.BoxGeometry(1.2, 1.2, 1.2), 
                         new THREE.MeshBasicMaterial({ color: 0x7f8c8d, map: havanYanDoku })
@@ -426,9 +424,15 @@
                 meshGroup.add(cadir);
             }
             else if(tip === 'duvar') {
+                // İstediğin koyu taş linkini tam buraya bağladım şef!
                 const blok = new THREE.Mesh(
                     new THREE.BoxGeometry(0.9, 0.9, 0.9), 
-                    new THREE.MeshBasicMaterial({ color: isPreview ? 0x2ecc71 : 0xbdc3c7, transparent: isPreview, opacity: isPreview ? 0.6 : 1.0 })
+                    new THREE.MeshBasicMaterial({ 
+                        color: isPreview ? 0x2ecc71 : 0xffffff, 
+                        map: isPreview ? null : duvarTasDoku,
+                        transparent: isPreview, 
+                        opacity: isPreview ? 0.6 : 1.0 
+                    })
                 );
                 blok.position.y = 0.45;
                 meshGroup.add(blok);
@@ -491,6 +495,8 @@
             
             havanYanDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/VrJl40sboA.jpeg'));
             havanUstDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://r.resimlink.com/itHIsPM.png'));
+            // Gönderdiğin taş dokusu linki burada proxy üzerinden yükleniyor
+            duvarTasDoku = tLoader.load('https://corsproxy.io/?' + encodeURIComponent('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4R7jW89E1QKP1jpldTSTmjZP-uMZrFpMwow11qJSASg&s=10'));
 
             const cimenDoku = tLoader.load('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRWESqbt0RlQ4X3MxEJlDLKJcBXOLWjfBzdlhtvEEag&s=10');
             cimenDoku.wrapS = THREE.RepeatWrapping; cimenDoku.wrapT = THREE.RepeatWrapping; cimenDoku.repeat.set(5, 5);
