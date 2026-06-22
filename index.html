@@ -180,11 +180,7 @@
         const tKulubeKapi = textureLoader.load('https://r.resimlink.com/jy13L5F2.png');
         const tKulubeDuvar = textureLoader.load('https://r.resimlink.com/Q6fK-8erRCn.png');
 
-        // ============ KRAL (İNCE 2D DÜZLEM) ============
-        const tKralOn = textureLoader.load('https://r.resimlink.com/DFIBJsV4lHT.png');
-        const tKralArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
-
-        // KRAL OKÇU
+        // KRAL OKÇU (eski sistem)
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
         const tOkcuArka = textureLoader.load('https://r.resimlink.com/2SVFCM6B1N.png');
 
@@ -192,6 +188,309 @@
         tCimen.wrapT = THREE.RepeatWrapping;
         tCimen.repeat.set(5, 5);
 
+        // =========================================================
+        // YENİ 3D KRAL KARAKTERİ (Takım Elbiseli, Gözlüklü, Kılıçlı)
+        // =========================================================
+        function makeCanvasTexture(drawFn, size = 1024) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            drawFn(ctx, size);
+            const tex = new THREE.CanvasTexture(c);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function drawSuitTexture(ctx, size) {
+            ctx.fillStyle = '#c9b08a';
+            ctx.fillRect(0, 0, size, size);
+            ctx.globalAlpha = 0.14;
+            ctx.strokeStyle = '#8e7457';
+            for (let i = 0; i < 40; i++) {
+                ctx.beginPath();
+                const y = (i / 40) * size;
+                ctx.moveTo(0, y);
+                ctx.lineTo(size, y + (i % 2 ? 2 : -2));
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#b89d78';
+            ctx.beginPath();
+            ctx.moveTo(size * 0.12, size * 0.12);
+            ctx.lineTo(size * 0.42, size * 0.26);
+            ctx.lineTo(size * 0.28, size * 0.62);
+            ctx.lineTo(size * 0.12, size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(size * 0.88, size * 0.12);
+            ctx.lineTo(size * 0.58, size * 0.26);
+            ctx.lineTo(size * 0.72, size * 0.62);
+            ctx.lineTo(size * 0.88, size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#2b251f';
+            [0.42, 0.58].forEach(y => {
+                ctx.beginPath();
+                ctx.arc(size * 0.52, size * y, size * 0.015, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawShirtTexture(ctx, size) {
+            ctx.fillStyle = '#d7c8b2';
+            ctx.fillRect(0, 0, size, size);
+            ctx.globalAlpha = 0.08;
+            ctx.fillStyle = '#ffffff';
+            for (let x = 0; x < size; x += 36) ctx.fillRect(x, 0, 2, size);
+            ctx.globalAlpha = 1;
+        }
+
+        function drawSkinTexture(ctx, size) {
+            ctx.fillStyle = '#d7a987';
+            ctx.fillRect(0, 0, size, size);
+        }
+
+        function drawHairTexture(ctx, size) {
+            ctx.fillStyle = '#131313';
+            ctx.fillRect(0, 0, size, size);
+            ctx.globalAlpha = 0.22;
+            ctx.strokeStyle = '#3a3a3a';
+            for (let i = 0; i < 80; i++) {
+                ctx.beginPath();
+                const y = Math.random() * size;
+                ctx.moveTo(0, y);
+                ctx.bezierCurveTo(size * 0.2, y - 10, size * 0.6, y + 10, size, y - 4);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function drawShoeTexture(ctx, size) {
+            ctx.fillStyle = '#7a5534';
+            ctx.fillRect(0, 0, size, size);
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, size * 0.78, size, size * 0.08);
+            ctx.globalAlpha = 1;
+        }
+
+        function drawSwordTexture(ctx, size) {
+            ctx.clearRect(0, 0, size, size);
+            const g = ctx.createLinearGradient(size * 0.45, 0, size * 0.55, 0);
+            g.addColorStop(0, '#666');
+            g.addColorStop(0.5, '#f2f2f2');
+            g.addColorStop(1, '#666');
+            ctx.fillStyle = g;
+            ctx.fillRect(size * 0.46, size * 0.05, size * 0.08, size * 0.7);
+            ctx.fillStyle = '#8b6b3f';
+            ctx.fillRect(size * 0.40, size * 0.72, size * 0.20, size * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(size * 0.42, size * 0.80);
+            ctx.lineTo(size * 0.58, size * 0.80);
+            ctx.lineTo(size * 0.54, size * 0.92);
+            ctx.lineTo(size * 0.46, size * 0.92);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function buildSuitSwordHero() {
+            const hero = new THREE.Group();
+            hero.name = 'SuitSwordHero';
+
+            const suitTex = makeCanvasTexture(drawSuitTexture);
+            const shirtTex = makeCanvasTexture(drawShirtTexture);
+            const skinTex = makeCanvasTexture(drawSkinTexture);
+            const hairTex = makeCanvasTexture(drawHairTexture);
+            const shoeTex = makeCanvasTexture(drawShoeTexture);
+            const swordTex = makeCanvasTexture(drawSwordTexture);
+
+            const suitMat = new THREE.MeshStandardMaterial({ map: suitTex, roughness: 0.92, metalness: 0.0 });
+            const shirtMat = new THREE.MeshStandardMaterial({ map: shirtTex, roughness: 0.95, metalness: 0.0 });
+            const skinMat = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 1.0, metalness: 0.0 });
+            const hairMat = new THREE.MeshStandardMaterial({ map: hairTex, roughness: 0.8, metalness: 0.0 });
+            const shoeMat = new THREE.MeshStandardMaterial({ map: shoeTex, roughness: 0.95, metalness: 0.0 });
+            const swordMat = new THREE.MeshStandardMaterial({ map: swordTex, roughness: 0.35, metalness: 0.75 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+
+            // gövde
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.45, 0.55), suitMat);
+            body.position.y = 2.25;
+            hero.add(body);
+
+            // gömlek önü
+            const shirt = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.95, 0.36), shirtMat);
+            shirt.position.set(0, 2.22, 0.28);
+            hero.add(shirt);
+
+            // ceket yakaları
+            const lapelL = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.62, 0.08), suitMat);
+            lapelL.position.set(-0.28, 2.55, 0.29);
+            lapelL.rotation.z = 0.42;
+            hero.add(lapelL);
+
+            const lapelR = lapelL.clone();
+            lapelR.position.x = 0.28;
+            lapelR.rotation.z = -0.42;
+            hero.add(lapelR);
+
+            // baş
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 18), skinMat);
+            head.position.y = 3.32;
+            hero.add(head);
+
+            // saç
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.41, 20, 16), hairMat);
+            hair.scale.set(1.02, 0.82, 1.02);
+            hair.position.set(0, 3.48, 0.02);
+            hero.add(hair);
+
+            // saç önü / perçem
+            const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.18), hairMat);
+            fringe.position.set(0.0, 3.61, 0.29);
+            fringe.rotation.x = -0.12;
+            hero.add(fringe);
+
+            // kulaklar
+            const earL = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), skinMat);
+            earL.position.set(-0.39, 3.25, 0.0);
+            hero.add(earL);
+            const earR = earL.clone(); earR.position.x = 0.39; hero.add(earR);
+
+            // gözlük
+            const glassL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.11, 0.03), darkMat);
+            glassL.position.set(-0.12, 3.34, 0.35);
+            hero.add(glassL);
+            const glassR = glassL.clone(); glassR.position.x = 0.12; hero.add(glassR);
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, 0.025), darkMat);
+            bridge.position.set(0, 3.34, 0.35);
+            hero.add(bridge);
+
+            // boyun
+            const neck = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.16), skinMat);
+            neck.position.set(0, 2.92, 0);
+            hero.add(neck);
+
+            // kollar (eklemli)
+            const upperArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.11, 0.72, 12), suitMat);
+            upperArmL.position.set(-0.65, 2.38, 0);
+            upperArmL.rotation.z = 0.08;
+            hero.add(upperArmL);
+
+            const forearmL = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 0.66, 12), skinMat);
+            forearmL.position.set(-0.73, 1.82, 0.02);
+            forearmL.rotation.z = 0.16;
+            hero.add(forearmL);
+
+            const handL = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), skinMat);
+            handL.position.set(-0.77, 1.46, 0.05);
+            hero.add(handL);
+
+            const upperArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.11, 0.72, 12), suitMat);
+            upperArmR.position.set(0.65, 2.38, 0);
+            upperArmR.rotation.z = -0.08;
+            hero.add(upperArmR);
+
+            const forearmR = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 0.66, 12), skinMat);
+            forearmR.position.set(0.73, 1.82, 0.02);
+            forearmR.rotation.z = -0.16;
+            hero.add(forearmR);
+
+            const handR = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 10), skinMat);
+            handR.position.set(0.77, 1.46, 0.05);
+            hero.add(handR);
+
+            // bacaklar
+            const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.95, 12), suitMat);
+            legL.position.set(-0.23, 1.12, 0);
+            hero.add(legL);
+            const legR = legL.clone(); legR.position.x = 0.23; hero.add(legR);
+
+            // pantolon çizgisi
+            const seamL = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.9, 0.18), new THREE.MeshStandardMaterial({ color: 0x8f7456, roughness: 1.0 }));
+            seamL.position.set(-0.23, 1.12, 0.14);
+            hero.add(seamL);
+            const seamR = seamL.clone(); seamR.position.x = 0.23; hero.add(seamR);
+
+            // ayakkabılar
+            const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.42), shoeMat);
+            shoeL.position.set(-0.23, 0.4, 0.08);
+            shoeL.rotation.y = -0.05;
+            hero.add(shoeL);
+            const shoeR = shoeL.clone(); shoeR.position.x = 0.23; shoeR.rotation.y = 0.05; hero.add(shoeR);
+
+            // sağ elindeki kılıç
+            const sword = new THREE.Group();
+            const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.02, 1.85, 10), swordMat);
+            blade.rotation.z = Math.PI / 2;
+            blade.position.set(0, 1.35, 0);
+            sword.add(blade);
+
+            const crossguard = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.12), new THREE.MeshStandardMaterial({ color: 0x7f6238, roughness: 0.9 }));
+            crossguard.position.set(0, 0.48, 0);
+            sword.add(crossguard);
+
+            const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.42, 10), new THREE.MeshStandardMaterial({ color: 0x3a2b1a, roughness: 1.0 }));
+            grip.position.set(0, 0.22, 0);
+            sword.add(grip);
+
+            const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), new THREE.MeshStandardMaterial({ color: 0x7a5b35, roughness: 0.85 }));
+            pommel.position.set(0, -0.02, 0);
+            sword.add(pommel);
+
+            sword.position.set(0.86, 1.9, 0.02);
+            sword.rotation.z = 0.04;
+            sword.rotation.y = 0.02;
+            hero.add(sword);
+
+            // karakteri biraz havaya kaldır
+            hero.scale.set(1.18, 1.18, 1.18);
+
+            // basit animasyon için referanslar
+            hero.userData.parts = {
+                body, shirt, head, hair, fringe, upperArmL, forearmL, handL, upperArmR, forearmR, handR, legL, legR, shoeL, shoeR, sword
+            };
+            hero.userData.base = {
+                upperArmL: upperArmL.rotation.z,
+                forearmL: forearmL.rotation.z,
+                upperArmR: upperArmR.rotation.z,
+                forearmR: forearmR.rotation.z,
+                legL: legL.rotation.x,
+                legR: legR.rotation.x,
+                bodyY: body.position.y,
+                headY: head.position.y,
+                swordRotZ: sword.rotation.z
+            };
+
+            return hero;
+        }
+
+        function animateHero(hero, t, moving = false) {
+            if (!hero || !hero.userData || !hero.userData.parts) return;
+            const p = hero.userData.parts;
+            const speed = moving ? 0.14 : 0.035;
+            const walk = Math.sin(t * 6 * speed);
+            const breathe = Math.sin(t * 2.2 * speed);
+
+            p.upperArmL.rotation.z = hero.userData.base.upperArmL + (moving ? 0.55 * walk : 0.08 * breathe);
+            p.forearmL.rotation.z = hero.userData.base.forearmL + (moving ? -0.18 * walk : 0.03 * breathe);
+
+            p.upperArmR.rotation.z = hero.userData.base.upperArmR + (moving ? -0.45 * walk : -0.05 * breathe);
+            p.forearmR.rotation.z = hero.userData.base.forearmR + (moving ? 0.16 * walk : -0.02 * breathe);
+
+            p.legL.rotation.x = hero.userData.base.legL + (moving ? -0.45 * walk : 0.02 * breathe);
+            p.legR.rotation.x = hero.userData.base.legR + (moving ? 0.45 * walk : -0.02 * breathe);
+
+            p.body.position.y = hero.userData.base.bodyY + 0.03 * breathe + (moving ? 0.03 * Math.abs(walk) : 0);
+            p.head.position.y = hero.userData.base.headY + 0.02 * breathe + (moving ? 0.01 * Math.abs(walk) : 0);
+            p.sword.rotation.z = hero.userData.base.swordRotZ + 0.04 * breathe;
+        }
+
+        // =========================================================
+        // MEVCUT FONKSİYONLAR (değişmeyenler)
+        // =========================================================
         function uiKilitle(durum) {
             uiTiklamaKilidi = durum;
         }
@@ -309,40 +608,19 @@
             askerYarat3D(tip);
         }
 
-        // ============ KRAL OLUŞTUR (İNCE 2D) ============
+        // =========================================================
+        // GÜNCELLENMİŞ askerYarat3D (Kral artık 3D takım elbiseli)
+        // =========================================================
         function askerYarat3D(tip) {
             let askerGroup = new THREE.Group();
 
-            if(tip === 'savasci') {
-                // KRAL - Ön yüz
-                let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
-                let onMat = new THREE.MeshStandardMaterial({ 
-                    map: tKralOn, 
-                    transparent: true, 
-                    side: THREE.FrontSide 
-                });
-                let onMesh = new THREE.Mesh(onGeo, onMat);
-                onMesh.position.z = 0.01;
-                askerGroup.add(onMesh);
-
-                // KRAL - Arka yüz
-                let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
-                let arkaMat = new THREE.MeshStandardMaterial({ 
-                    map: tKralArka, 
-                    transparent: true, 
-                    side: THREE.FrontSide 
-                });
-                let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
-                arkaMesh.rotation.y = Math.PI;
-                arkaMesh.position.z = -0.01;
-                askerGroup.add(arkaMesh);
-
-                // Kral 5 kat büyük
-                askerGroup.scale.set(5, 5, 5);
-                askerGroup.position.y = 3.5;
-
-            } else if(tip === 'okcu') {
-                // KRAL OKÇU - Ön ve arka
+            if (tip === 'savasci') {
+                // YENİ 3D KRAL
+                askerGroup = buildSuitSwordHero();
+                askerGroup.scale.set(1.55, 1.55, 1.55);
+                askerGroup.position.y = 0.0;
+            } else if (tip === 'okcu') {
+                // KRAL OKÇU (eski sistem)
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let onMat = new THREE.MeshStandardMaterial({ map: tOkcuOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
@@ -356,36 +634,36 @@
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
 
-                // Okçu 3 kat büyük
                 askerGroup.scale.set(3, 3, 3);
                 askerGroup.position.y = 2.1;
-
             } else {
-                // Barbar - küçük küp
+                // Barbar
                 let renk = 0xf1c40f;
                 let k = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: renk }));
                 askerGroup.add(k);
                 askerGroup.position.y = 0.7;
             }
 
-            // Belediye etrafında rastgele konum
             let rAci = Math.random() * Math.PI * 2;
             let rUzaklik = 4 + Math.random() * 3;
             askerGroup.position.x = Math.cos(rAci) * rUzaklik;
             askerGroup.position.z = Math.sin(rAci) * rUzaklik;
-            
+
             scene.add(askerGroup);
-            sahnedekiAskerler.push({ 
-                group: askerGroup, 
-                tip: tip, 
-                hedefX: askerGroup.position.x, 
-                hedefZ: askerGroup.position.z, 
+            sahnedekiAskerler.push({
+                group: askerGroup,
+                tip: tip,
+                hedefX: askerGroup.position.x,
+                hedefZ: askerGroup.position.z,
                 sayac: 0,
                 oncekiX: askerGroup.position.x,
                 oncekiZ: askerGroup.position.z
             });
         }
 
+        // =========================================================
+        // DİĞER MEVCUT FONKSİYONLAR (binalar, chat, kamera vs.)
+        // =========================================================
         function secBina(tip, bedel, paraTipi, e) {
             if(e) e.stopPropagation();
             if(paraTipi === 'gold' && oyuncu.gold < bedel) return alert("Yetersiz Altın!");
@@ -715,12 +993,20 @@
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
 
-                // ASKERLER - HAREKET YÖNÜNE BAKMA
+                // ASKERLER - HAREKET + ANİMASYON
                 sahnedekiAskerler.forEach(asker => {
+                    // Hareket yönünü hesapla
                     let dx = asker.group.position.x - asker.oncekiX;
                     let dz = asker.group.position.z - asker.oncekiZ;
+                    let moving = (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001);
                     
-                    if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
+                    // Yeni 3D Kral ise animasyonu uygula
+                    if (asker.tip === 'savasci' && asker.group.userData && asker.group.userData.parts) {
+                        animateHero(asker.group, performance.now() * 0.001, moving);
+                    }
+                    
+                    // Yön dönüşü (tüm askerler için)
+                    if (moving) {
                         let aci = Math.atan2(dx, dz);
                         asker.group.rotation.y = aci;
                     }
@@ -728,6 +1014,7 @@
                     asker.oncekiX = asker.group.position.x;
                     asker.oncekiZ = asker.group.position.z;
 
+                    // Devriye
                     asker.sayac++;
                     if(asker.sayac % 120 === 0) { 
                         asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
