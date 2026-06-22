@@ -369,6 +369,9 @@
         const TAKIM_KONTENJAN = { savasci: 5, okcu: 5, barbar: 1 };
         const TAKIM_ISIM = { savasci: 'Kral', okcu: 'Kral Okçu', barbar: 'Barbar' };
 
+        // Mermi listesi (animasyon için)
+        let mermiler = [];
+
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const textureLoader = new THREE.TextureLoader();
@@ -388,6 +391,9 @@
         const tKralArka = textureLoader.load('https://r.resimlink.com/mLv9lxN.png');
         const tOkcuOn = textureLoader.load('https://r.resimlink.com/_y05gCcLGH.png');
         const tOkcuArka = textureLoader.load('https://r.resimlink.com/2SVFCM6B1N.png');
+
+        // Mermi texture'ı (Kral Okçu için)
+        const tMermi = textureLoader.load('https://r.resimlink.com/ZX4A5u.png');
 
         tCimen.wrapS = THREE.RepeatWrapping;
         tCimen.wrapT = THREE.RepeatWrapping;
@@ -449,8 +455,134 @@
         }
 
         // =========================================================
-        // SAVAŞ SİSTEMİ (Can barları ile)
+        // SAVAŞ SİSTEMİ
         // =========================================================
+        // Asker sınıfı (can, saldırı, menzil vb.)
+        class Asker {
+            constructor(tip, x, y, z) {
+                this.tip = tip;
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.can = 100;
+                this.maxCan = 100;
+                this.saldiriGucu = 10;
+                this.menzil = 1.5;
+                this.saldiriAraligi = 60; // frame
+                this.sayac = 0;
+                this.group = null;
+                this.label = null;
+                this.hedef = null; // saldırdığı hedef bina
+                this.canLabel = null;
+                this.oldu = false;
+
+                if (tip === 'savasci') {
+                    this.saldiriGucu = 25;
+                    this.menzil = 1.2;
+                    this.saldiriAraligi = 40;
+                } else if (tip === 'okcu') {
+                    this.saldiriGucu = 15;
+                    this.menzil = 8;
+                    this.saldiriAraligi = 30;
+                } else if (tip === 'barbar') {
+                    this.saldiriGucu = 12;
+                    this.menzil = 1.0;
+                    this.saldiriAraligi = 50;
+                }
+            }
+
+            // Hasar ver
+            saldir(hedef) {
+                if (!hedef || hedef.can <= 0) return;
+                let hasar = this.saldiriGucu + Math.floor(Math.random() * 5);
+                hedef.can -= hasar;
+                if (hedef.can < 0) hedef.can = 0;
+                // Can barını güncelle
+                if (hedef.label) hedef.label.update();
+                if (hedef.can <= 0) {
+                    // Bina yıkıldı
+                    if (hedef.group) {
+                        scene.remove(hedef.group);
+                    }
+                    let idx = dusmanBinalari.indexOf(hedef);
+                    if (idx > -1) {
+                        dusmanBinalari.splice(idx, 1);
+                        savasPuani += 20;
+                        document.getElementById('savas-puan').innerText = savasPuani;
+                        document.getElementById('savas-durum').innerText = `💥 Bir bina yıkıldı! +20 puan`;
+                    }
+                    if (dusmanBinalari.length === 0) {
+                        savasPuani += 50;
+                        document.getElementById('savas-puan').innerText = savasPuani;
+                        document.getElementById('savas-durum').innerText = '🏆 ZAFER! Tüm binalar yıkıldı! 5 saniye sonra köye dönülecek.';
+                        setTimeout(() => { koyeDon(); }, 5000);
+                    }
+                } else {
+                    document.getElementById('savas-durum').innerText = `⚔️ ${this.tip} ${hasar} hasar verdi! Kalan can: ${hedef.can}`;
+                }
+            }
+
+            // Okçu mermi fırlatma
+            mermiAt(hedef) {
+                if (!hedef || hedef.can <= 0) return;
+                // Mermi oluştur
+                let mermiGroup = new THREE.Group();
+                let mermiMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.3, 0.3),
+                    new THREE.MeshStandardMaterial({ map: tMermi, transparent: true, side: THREE.DoubleSide })
+                );
+                mermiGroup.add(mermiMesh);
+                let baslangic = new THREE.Vector3(this.group.position.x, this.group.position.y, this.group.position.z);
+                let hedefPos = new THREE.Vector3(hedef.x, 1.5, hedef.z);
+                mermiGroup.position.copy(baslangic);
+                scene.add(mermiGroup);
+
+                mermiler.push({
+                    group: mermiGroup,
+                    baslangic: baslangic,
+                    hedef: hedefPos,
+                    ilerleme: 0,
+                    hiz: 0.05,
+                    hedefBina: hedef,
+                    aktif: true
+                });
+            }
+        }
+
+        // Can barı oluştur (CSS2D)
+        function canBarOlustur(hedef) {
+            let div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.alignItems = 'center';
+            div.style.pointerEvents = 'none';
+
+            let etiket = document.createElement('div');
+            etiket.className = 'can-etiket';
+            etiket.innerText = Math.floor(hedef.can);
+            div.appendChild(etiket);
+
+            let barDiv = document.createElement('div');
+            barDiv.className = 'can-bari';
+            let dolgu = document.createElement('div');
+            dolgu.className = 'can-dolgu';
+            dolgu.style.width = '100%';
+            dolgu.style.background = '#2ecc71';
+            barDiv.appendChild(dolgu);
+            div.appendChild(barDiv);
+
+            div.update = function() {
+                let oran = hedef.can / hedef.maxCan;
+                dolgu.style.width = (oran * 100) + '%';
+                if (oran > 0.6) dolgu.style.background = '#2ecc71';
+                else if (oran > 0.3) dolgu.style.background = '#f1c40f';
+                else dolgu.style.background = '#e74c3c';
+                etiket.innerText = Math.floor(hedef.can);
+            };
+            div.update();
+            return div;
+        }
+
         function savasBaslat() {
             if (!oyuncu) return alert('Önce giriş yap!');
             let toplamKisi = takim.reduce((a, b) => a + (b.adet * TAKIM_KONTENJAN[b.tip]), 0);
@@ -459,17 +591,17 @@
                 return;
             }
 
-            // Köydeki binaları ve askerleri sakla
+            // Köydekileri sakla
             koyBinalari = sahnedekiBinalar.map(b => ({ type: b.type, x: b.x, z: b.z }));
             koyAskerleri = sahnedekiAskerler.map(a => ({ tip: a.tip, x: a.group.position.x, z: a.group.position.z }));
 
-            // Sahnedeki her şeyi temizle (belediye, depolar dahil)
+            // Sahneyi temizle
             sahnedekiBinalar.forEach(b => scene.remove(b.group));
             sahnedekiBinalar = [];
             sahnedekiAskerler.forEach(a => scene.remove(a.group));
             sahnedekiAskerler = [];
 
-            // Düşman binalarını oluştur
+            // Düşman binaları
             const binaTipleri = ['kanon', 'kisla', 'duvar'];
             const isimler = ['Havan', 'Kulübe', 'Duvar'];
             const canlar = [100, 80, 60];
@@ -486,18 +618,17 @@
                 if (cakisma) { x += 2; z += 2; }
                 let bina = { type: tip, x: x, z: z, can: can, maxCan: can, id: i };
                 dusmanBinalari.push(bina);
-                // Binayı sahneye ekle
                 let meshGroup = binaKoySahnede3D(tip, x, z, false);
-                // Can barını ekle
+                bina.group = meshGroup;
+                // Can barı (CSS2D)
                 bina.label = canBarOlustur(bina);
-                // label'ı meshGroup'a ekle (CSS2DObject)
                 let labelObj = new THREE.CSS2DObject(bina.label);
                 labelObj.position.set(0, 1.8, 0);
                 meshGroup.add(labelObj);
-                bina.group = meshGroup;
             }
 
-            // Kendi askerlerimizi sahneye ekle
+            // Kendi askerlerimiz (Asker sınıfı)
+            let askerList = [];
             takim.forEach(t => {
                 let kisiSayisi = t.adet * TAKIM_KONTENJAN[t.tip];
                 for (let i = 0; i < kisiSayisi; i++) {
@@ -505,10 +636,13 @@
                     let rUzaklik = 3 + Math.random() * 4;
                     let x = Math.cos(rAci) * rUzaklik;
                     let z = Math.sin(rAci) * rUzaklik;
-                    let g = askerYarat3D(t.tip, true);
                     let y = (t.tip === 'savasci') ? 3.5 : (t.tip === 'okcu') ? 2.1 : 0.7;
+                    let asker = new Asker(t.tip, x, y, z);
+                    let g = askerYarat3D(t.tip, true);
                     g.position.set(x, y, z);
                     scene.add(g);
+                    asker.group = g;
+                    askerList.push(asker);
                     sahnedekiAskerler.push({
                         group: g,
                         tip: t.tip,
@@ -517,79 +651,118 @@
                         sayac: 0,
                         oncekiX: x,
                         oncekiZ: z,
-                        savasci: true
+                        savasci: true,
+                        askerRef: asker
                     });
                 }
             });
 
-            // Savaş modunu aktif et
+            // Savaş modu
             savasModu = true;
             document.getElementById('savas-bilgi').style.display = 'block';
-            document.getElementById('savas-durum').innerText = '⚔️ Savaş başladı! Düşman binalarını yok et!';
+            document.getElementById('savas-durum').innerText = '⚔️ Savaş başladı! Askerlerin saldırıyor!';
             document.getElementById('main-panel').style.display = 'none';
             uiKilitle(false);
+
+            // Savaş döngüsünü başlat (her frame'de askerler saldırır)
+            savasDongusu(askerList);
         }
 
-        // Can barı oluştur (HTML div)
-        function canBarOlustur(bina) {
-            let div = document.createElement('div');
-            div.style.display = 'flex';
-            div.style.flexDirection = 'column';
-            div.style.alignItems = 'center';
-            div.style.pointerEvents = 'none';
-
-            let etiket = document.createElement('div');
-            etiket.className = 'can-etiket';
-            etiket.innerText = Math.floor(bina.can);
-            div.appendChild(etiket);
-
-            let barDiv = document.createElement('div');
-            barDiv.className = 'can-bari';
-            let dolgu = document.createElement('div');
-            dolgu.className = 'can-dolgu';
-            dolgu.style.width = '100%';
-            dolgu.style.background = '#2ecc71';
-            barDiv.appendChild(dolgu);
-            div.appendChild(barDiv);
-
-            // Güncelleme fonksiyonu
-            div.update = function() {
-                let oran = bina.can / bina.maxCan;
-                dolgu.style.width = (oran * 100) + '%';
-                if (oran > 0.6) dolgu.style.background = '#2ecc71';
-                else if (oran > 0.3) dolgu.style.background = '#f1c40f';
-                else dolgu.style.background = '#e74c3c';
-                etiket.innerText = Math.floor(bina.can);
-            };
-            div.update();
-            return div;
-        }
-
-        function binaTiklandi(bina) {
+        // Savaş döngüsü (her frame'de çalışacak)
+        function savasDongusu(askerList) {
             if (!savasModu) return;
-            if (!bina || bina.can <= 0) return;
-            let toplamKisi = takim.reduce((a, b) => a + (b.adet * TAKIM_KONTENJAN[b.tip]), 0);
-            let hasar = Math.floor(Math.random() * 20) + 5 + toplamKisi * 2;
-            bina.can -= hasar;
-            if (bina.can < 0) bina.can = 0;
-            // Can barını güncelle
-            if (bina.label) bina.label.update();
-            if (bina.can <= 0) {
-                savasPuani += 20;
-                document.getElementById('savas-puan').innerText = savasPuani;
-                document.getElementById('savas-durum').innerText = `💥 Bir bina yıkıldı! +20 puan`;
-                // Binayı yok et
-                scene.remove(bina.group);
-                let idx = dusmanBinalari.indexOf(bina);
-                if (idx > -1) dusmanBinalari.splice(idx, 1);
-                if (dusmanBinalari.length === 0) {
-                    savasPuani += 50;
-                    document.getElementById('savas-puan').innerText = savasPuani;
-                    document.getElementById('savas-durum').innerText = '🏆 ZAFER! Tüm binalar yıkıldı! 5 saniye sonra köye dönülecek.';
-                    setTimeout(() => { koyeDon(); }, 5000);
+
+            // Her asker için
+            askerList.forEach(asker => {
+                if (asker.oldu) return;
+                // En yakın düşman binasını bul
+                let hedef = null;
+                let minMesafe = Infinity;
+                dusmanBinalari.forEach(b => {
+                    let dx = b.x - asker.group.position.x;
+                    let dz = b.z - asker.group.position.z;
+                    let mesafe = Math.sqrt(dx*dx + dz*dz);
+                    if (mesafe < minMesafe) {
+                        minMesafe = mesafe;
+                        hedef = b;
+                    }
+                });
+                if (!hedef || hedef.can <= 0) return;
+
+                // Hedefe doğru dön
+                let dx = hedef.x - asker.group.position.x;
+                let dz = hedef.z - asker.group.position.z;
+                asker.group.rotation.y = Math.atan2(dx, dz);
+
+                // Menzil kontrolü
+                if (minMesafe <= asker.menzil) {
+                    // Saldır
+                    asker.sayac++;
+                    if (asker.sayac >= asker.saldiriAraligi) {
+                        asker.sayac = 0;
+                        if (asker.tip === 'okcu') {
+                            // Okçu uzaktan mermi atar
+                            asker.mermiAt(hedef);
+                        } else {
+                            // Yakın dövüş
+                            asker.saldir(hedef);
+                        }
+                    }
+                } else {
+                    // Hedefe doğru ilerle
+                    let hiz = 0.03;
+                    asker.group.position.x += (dx / minMesafe) * hiz;
+                    asker.group.position.z += (dz / minMesafe) * hiz;
+                    asker.sayac = 0;
                 }
-            } else {
-                document.getElementById('savas-durum').innerText = `⚔️ ${hasar} hasar verildi! Kalan can: ${bina.can}`;
+            });
+
+            // Mermi animasyonu
+            mermiler.forEach(m => {
+                if (!m.aktif) return;
+                m.ilerleme += m.hiz;
+                if (m.ilerleme >= 1) {
+                    m.aktif = false;
+                    scene.remove(m.group);
+                    // Hedefe hasar ver
+                    if (m.hedefBina && m.hedefBina.can > 0) {
+                        // Okçu hasarını uygula
+                        let hasar = 15 + Math.floor(Math.random() * 5);
+                        m.hedefBina.can -= hasar;
+                        if (m.hedefBina.can < 0) m.hedefBina.can = 0;
+                        if (m.hedefBina.label) m.hedefBina.label.update();
+                        if (m.hedefBina.can <= 0) {
+                            scene.remove(m.hedefBina.group);
+                            let idx = dusmanBinalari.indexOf(m.hedefBina);
+                            if (idx > -1) {
+                                dusmanBinalari.splice(idx, 1);
+                                savasPuani += 20;
+                                document.getElementById('savas-puan').innerText = savasPuani;
+                                document.getElementById('savas-durum').innerText = `💥 Bir bina yıkıldı! +20 puan`;
+                            }
+                            if (dusmanBinalari.length === 0) {
+                                savasPuani += 50;
+                                document.getElementById('savas-puan').innerText = savasPuani;
+                                document.getElementById('savas-durum').innerText = '🏆 ZAFER! Tüm binalar yıkıldı! 5 saniye sonra köye dönülecek.';
+                                setTimeout(() => { koyeDon(); }, 5000);
+                            }
+                        } else {
+                            document.getElementById('savas-durum').innerText = `🏹 Okçu ${hasar} hasar verdi! Kalan can: ${m.hedefBina.can}`;
+                        }
+                    }
+                } else {
+                    // Mermi hareketi (lerp)
+                    let pos = new THREE.Vector3().lerpVectors(m.baslangic, m.hedef, m.ilerleme);
+                    m.group.position.copy(pos);
+                }
+            });
+
+            // Temizlik (pasif mermileri kaldır)
+            mermiler = mermiler.filter(m => m.aktif);
+
+            // Savaş devam ediyorsa tekrarla
+            if (savasModu) {
+                requestAnimationFrame(() => savasDongusu(askerList));
             }
         }
 
@@ -603,6 +776,8 @@
             sahnedekiAskerler.forEach(a => scene.remove(a.group));
             sahnedekiAskerler = [];
             dusmanBinalari = [];
+            mermiler.forEach(m => scene.remove(m.group));
+            mermiler = [];
             // Köyü geri yükle
             if (koyBinalari) {
                 koyBinalari.forEach(b => {
@@ -820,7 +995,7 @@
             return askerGroup;
         }
 
-        // Bina ekleme (can barı olmadan normal)
+        // Bina ekleme
         function secBina(tip, bedel, paraTipi, e) {
             if(e) e.stopPropagation();
             if (savasModu) return;
@@ -866,26 +1041,7 @@
             raycaster.setFromCamera(mouse, camera);
 
             if (savasModu) {
-                let kontrolListesi = [];
-                sahnedekiBinalar.forEach(b => {
-                    b.group.children.forEach(c => {
-                        if (c.type === 'Mesh') {
-                            c.userDataParent = b;
-                            kontrolListesi.push(c);
-                        }
-                    });
-                });
-                const vuruslar = raycaster.intersectObjects(kontrolListesi);
-                if (vuruslar.length > 0) {
-                    let bina = vuruslar[0].object.userDataParent;
-                    if (bina) {
-                        let d = dusmanBinalari.find(db => db.x === bina.x && db.z === bina.z);
-                        if (d) {
-                            binaTiklandi(d);
-                            return;
-                        }
-                    }
-                }
+                // Savaşta tıklama ile manuel saldırı (isteğe bağlı)
                 return;
             }
 
@@ -1086,13 +1242,13 @@
             container.innerHTML = ""; 
             container.appendChild(renderer.domElement);
 
-            // CSS2D Renderer (can barları için)
+            // CSS2D Renderer
             labelRenderer = new THREE.CSS2DRenderer();
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
             labelRenderer.domElement.style.position = 'absolute';
             labelRenderer.domElement.style.top = '0px';
             labelRenderer.domElement.style.left = '0px';
-            labelRenderer.domElement.style.pointerEvents = 'none'; // tıklamaları engelle
+            labelRenderer.domElement.style.pointerEvents = 'none';
             container.appendChild(labelRenderer.domElement);
 
             scene.add(new THREE.AmbientLight(0xffffff, 0.9));
@@ -1110,7 +1266,7 @@
             gridHelper.visible = false; 
             scene.add(gridHelper);
 
-            // Belediye ve depolar (manuel)
+            // Belediye ve depolar
             const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.6 }));
             binaGovde.position.y = 1.25; scene.add(binaGovde);
             const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6 }));
@@ -1188,64 +1344,21 @@
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
 
-                // Askerler kameraya baksın (savaşta ve normalde)
-                sahnedekiAskerler.forEach(asker => {
-                    asker.group.rotation.y = kameraAcisi;
-                });
-
-                // Savaşta düşman binaları kameraya baksın (can barları da döner)
-                if (savasModu) {
-                    dusmanBinalari.forEach(b => {
-                        if (b.group) {
-                            b.group.rotation.y = kameraAcisi;
-                        }
+                // Normal modda askerler kameraya baksın
+                if (!savasModu) {
+                    sahnedekiAskerler.forEach(asker => {
+                        asker.group.rotation.y = kameraAcisi;
                     });
                 }
 
-                // Asker hareketleri (savaş modunda)
-                if (savasModu && dusmanBinalari.length > 0) {
+                // Savaşta düşman binaları kameraya bakmasın (sadece can barları döner)
+                if (savasModu) {
+                    // Binalar kameraya bakmaz, sadece can barları CSS2D olduğu için otomatik olarak ekrana döner
+                }
+
+                // Normal modda devriye
+                if (!savasModu) {
                     sahnedekiAskerler.forEach(asker => {
-                        if (asker.savasci) {
-                            let hedef = null;
-                            let minMesafe = Infinity;
-                            dusmanBinalari.forEach(b => {
-                                let dx = b.x - asker.group.position.x;
-                                let dz = b.z - asker.group.position.z;
-                                let mesafe = dx*dx + dz*dz;
-                                if (mesafe < minMesafe) {
-                                    minMesafe = mesafe;
-                                    hedef = b;
-                                }
-                            });
-                            if (hedef) {
-                                let dx = hedef.x - asker.group.position.x;
-                                let dz = hedef.z - asker.group.position.z;
-                                asker.group.rotation.y = Math.atan2(dx, dz);
-                                asker.group.position.x += dx * 0.01;
-                                asker.group.position.z += dz * 0.01;
-                            }
-                        } else {
-                            let dx = asker.group.position.x - asker.oncekiX;
-                            let dz = asker.group.position.z - asker.oncekiZ;
-                            if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
-                                asker.group.rotation.y = Math.atan2(dx, dz);
-                            }
-                            asker.oncekiX = asker.group.position.x;
-                            asker.oncekiZ = asker.group.position.z;
-                            asker.sayac++;
-                            if(asker.sayac % 120 === 0) { 
-                                asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
-                                asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
-                                if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
-                                if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
-                            }
-                            asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
-                            asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
-                        }
-                    });
-                } else {
-                    sahnedekiAskerler.forEach(asker => {
-                        if (asker.savasci) return;
                         let dx = asker.group.position.x - asker.oncekiX;
                         let dz = asker.group.position.z - asker.oncekiZ;
                         if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
