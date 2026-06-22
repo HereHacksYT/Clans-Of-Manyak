@@ -107,7 +107,7 @@
 
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; display: none; }
 
-        /* ===== TAKIM SEÇME MODAL ===== */
+        /* TAKIM SEÇME MODAL */
         #takim-modal {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -143,7 +143,7 @@
             font-weight: bold;
             transition: 0.2s;
         }
-        .takim-secim button:hover { background: #ff9f43; border-color: #ff9f43; }
+        .takim-secim button:hover:not(:disabled) { background: #ff9f43; border-color: #ff9f43; }
         .takim-secim button:disabled {
             opacity: 0.4;
             cursor: not-allowed;
@@ -163,58 +163,29 @@
             margin-top: 10px;
         }
 
-        /* ===== SAVAŞ HARİTASI ===== */
-        #savas-harita {
+        /* SAVAŞ MODU BİLGİ PANELİ */
+        #savas-bilgi {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #1a3a1a;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 20;
             display: none;
-            z-index: 50;
-            color: white;
-            padding: 20px;
-            overflow: auto;
+            text-align: center;
+            pointer-events: none;
         }
-        #savas-harita .kapat-savas {
-            position: absolute;
-            top: 10px; right: 20px;
+        #savas-bilgi button {
+            pointer-events: auto;
+            margin-left: 10px;
             background: #e74c3c;
             border: none;
             color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            z-index: 60;
-        }
-        .savas-koy {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-top: 60px;
-            justify-content: center;
-        }
-        .savas-bina {
-            background: #2d2d2d;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #555;
-            min-width: 120px;
-            text-align: center;
-        }
-        .savas-bina .can {
-            color: #2ecc71;
-            font-weight: bold;
-        }
-        .savas-bina .can.dusuk { color: #e74c3c; }
-        .savas-bina .can.orta { color: #f1c40f; }
-        .savas-bina button {
-            margin-top: 8px;
-            padding: 4px 12px;
-            background: #ff9f43;
-            border: none;
+            padding: 5px 15px;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -320,39 +291,40 @@
 
     <div id="canvas-container"></div>
 
-    <!-- ===== TAKIM SEÇME MODAL ===== -->
+    <!-- TAKIM SEÇME MODAL -->
     <div id="takim-modal">
         <div class="modal-box">
             <h3>⚔️ TAKIMINI SEÇ</h3>
             <div id="takim-durum">0 / 10 asker seçildi</div>
             <div class="takim-secim">
-                <button onclick="takimEkle('savasci', 5)">👑 Kral (5 kişi)</button>
-                <button onclick="takimEkle('okcu', 5)">🏹 Kral Okçu (5 kişi)</button>
-                <button onclick="takimEkle('barbar', 1)">🦁 Barbar (1 kişi)</button>
+                <button onclick="takimEkle('savasci')">👑 Kral (5 kişi)</button>
+                <button onclick="takimEkle('okcu')">🏹 Kral Okçu (5 kişi)</button>
+                <button onclick="takimEkle('barbar')">🦁 Barbar (1 kişi)</button>
             </div>
             <div style="margin-top:10px; font-size:13px; color:#aaa;">Seçilenler: <span id="takim-listesi">-</span></div>
             <button class="modal-kapat" onclick="takimKapat()">Kapat</button>
         </div>
     </div>
 
-    <!-- ===== SAVAŞ HARİTASI ===== -->
-    <div id="savas-harita">
-        <button class="kapat-savas" onclick="savasKapat()">✖ Kapat</button>
-        <h2 style="text-align:center;">⚔️ DÜŞMAN KÖYÜ</h2>
-        <div id="savas-binalar" class="savas-koy"></div>
-        <div style="text-align:center; margin-top:20px;">
-            <button onclick="saldir()" style="background:#e74c3c; border:none; color:white; padding:10px 30px; border-radius:8px; font-weight:bold; cursor:pointer;">⚡ SALDIR</button>
-        </div>
+    <!-- SAVAŞ BİLGİ PANELİ -->
+    <div id="savas-bilgi">
+        <span id="savas-durum">⚔️ Savaş başladı!</span>
+        <button onclick="koyeDon()">🏠 Köye Dön</button>
     </div>
 
     <script>
         // =========================================================
-        // MEVCUT KODLAR
+        // GENEL DEĞİŞKENLER
         // =========================================================
         let oyuncu = null;
         let scene = null, camera = null, renderer = null, zeminMesh = null, gridHelper = null;
         let kameraAcisi = 0; 
         let kameraYaricap = 23; 
+        let savasModu = false;
+        let savasPuani = 0;
+        let dusmanBinalari = [];
+        let koyBinalari = []; // savaş öncesi binaları saklamak için
+        let koyAskerleri = []; // savaş öncesi askerleri saklamak için
 
         let insaatModu = false;
         let yikimModu = false;
@@ -365,6 +337,11 @@
         let uiTiklamaKilidi = false;
         let sahnedekiBinalar = [];
         let sahnedekiAskerler = [];
+        let takim = [];
+        const TAKIM_LIMIT = 10;
+        const TAKIM_KONTENJAN = { savasci: 5, okcu: 5, barbar: 1 };
+        // Asker tiplerinin isimleri
+        const TAKIM_ISIM = { savasci: 'Kral', okcu: 'Kral Okçu', barbar: 'Barbar' };
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
@@ -391,13 +368,9 @@
         tCimen.repeat.set(5, 5);
 
         // =========================================================
-        // TAKIM SEÇME SİSTEMİ
+        // TAKIM SEÇME
         // =========================================================
-        let takim = [];
-        const TAKIM_LIMIT = 10;
-        const TAKIM_KONTENJAN = { savasci: 5, okcu: 5, barbar: 1 };
-
-        function takimEkle(tip, adet) {
+        function takimEkle(tip) {
             let mevcut = takim.filter(t => t.tip === tip).reduce((a, b) => a + b.adet, 0);
             if (mevcut >= TAKIM_KONTENJAN[tip]) {
                 alert(`Bu türden maksimum ${TAKIM_KONTENJAN[tip]} kişi ekleyebilirsin!`);
@@ -420,9 +393,8 @@
         function takimGuncelleUI() {
             let toplam = takim.reduce((a, b) => a + b.adet, 0);
             document.getElementById('takim-durum').innerText = `${toplam} / ${TAKIM_LIMIT} asker seçildi`;
-            let list = takim.map(t => `${t.adet} ${t.tip}`).join(', ') || '-';
+            let list = takim.map(t => `${t.adet} ${TAKIM_ISIM[t.tip]}`).join(', ') || '-';
             document.getElementById('takim-listesi').innerText = list;
-            // Ana paneldeki özet
             document.getElementById('secili-takim-goster').innerText = list;
             // Butonları güncelle
             document.querySelectorAll('.takim-secim button').forEach(btn => {
@@ -437,10 +409,8 @@
             uiKilitle(false);
         }
 
-        // Yeni: Takım seç modalını aç, asker kulübesi kontrolü yap
         function takimSecModalAc() {
             if (!oyuncu) return alert('Önce giriş yap!');
-            // Asker kulübesi var mı kontrol et
             let kulubeVar = oyuncu.buildings && oyuncu.buildings.some(b => b.type === 'kisla');
             if (!kulubeVar) {
                 alert('⚠️ Önce Asker Kulübesi inşa et! (Dükkandan satın al)');
@@ -454,9 +424,6 @@
         // =========================================================
         // SAVAŞ SİSTEMİ
         // =========================================================
-        let savasPuani = 0;
-        let dusmanBinalari = [];
-
         function savasBaslat() {
             if (!oyuncu) return alert('Önce giriş yap!');
             let toplamAsker = takim.reduce((a, b) => a + b.adet, 0);
@@ -464,85 +431,166 @@
                 alert('Önce takım seç! (Savaş sekmesindeki "Takım Seç" butonuna tıkla)');
                 return;
             }
-            // Rastgele düşman köyü oluştur
+
+            // Köydeki binaları ve askerleri sakla
+            koyBinalari = sahnedekiBinalar.map(b => ({ type: b.type, x: b.x, z: b.z }));
+            koyAskerleri = sahnedekiAskerler.map(a => ({ tip: a.tip, x: a.group.position.x, z: a.group.position.z }));
+
+            // Sahnedeki her şeyi temizle (belediye, depolar dahil)
+            sahnedekiBinalar.forEach(b => scene.remove(b.group));
+            sahnedekiBinalar = [];
+            sahnedekiAskerler.forEach(a => scene.remove(a.group));
+            sahnedekiAskerler = [];
+
+            // Düşman binalarını oluştur
             const binaTipleri = ['kanon', 'kisla', 'duvar'];
             const isimler = ['Havan', 'Kulübe', 'Duvar'];
             const canlar = [100, 80, 60];
-            let binaSayisi = Math.floor(Math.random() * 5) + 3; // 3-7 bina
+            let binaSayisi = Math.floor(Math.random() * 5) + 3;
             dusmanBinalari = [];
-            let html = '';
             for (let i = 0; i < binaSayisi; i++) {
                 let idx = Math.floor(Math.random() * binaTipleri.length);
                 let can = canlar[idx] + Math.floor(Math.random() * 40) - 20;
                 if (can < 30) can = 30;
-                let bina = {
-                    tip: binaTipleri[idx],
-                    isim: isimler[idx],
-                    can: can,
-                    maxCan: can,
-                    id: i
-                };
+                let tip = binaTipleri[idx];
+                let x = (Math.random() - 0.5) * 18;
+                let z = (Math.random() - 0.5) * 18;
+                // Çakışmayı önlemek için basit kontrol
+                let cakisma = dusmanBinalari.some(b => Math.abs(b.x - x) < 1.5 && Math.abs(b.z - z) < 1.5);
+                if (cakisma) { x += 2; z += 2; }
+                let bina = { type: tip, x: x, z: z, can: can, maxCan: can, id: i };
                 dusmanBinalari.push(bina);
-                let canClass = can > 70 ? '' : (can > 40 ? 'orta' : 'dusuk');
-                html += `
-                    <div class="savas-bina" id="bina-${i}">
-                        <div><strong>${bina.isim}</strong></div>
-                        <div class="can ${canClass}">❤️ ${can} / ${bina.maxCan}</div>
-                        <button onclick="saldirBina(${i})">⚔️ Saldır</button>
-                    </div>
-                `;
+                binaKoySahnede3D(tip, x, z, false);
             }
-            document.getElementById('savas-binalar').innerHTML = html;
-            document.getElementById('savas-harita').style.display = 'block';
-            uiKilitle(true);
+
+            // Kendi askerlerimizi sahneye ekle
+            takim.forEach(t => {
+                for (let i = 0; i < t.adet; i++) {
+                    let rAci = Math.random() * Math.PI * 2;
+                    let rUzaklik = 3 + Math.random() * 4;
+                    let x = Math.cos(rAci) * rUzaklik;
+                    let z = Math.sin(rAci) * rUzaklik;
+                    // Asker oluştur (sadece grup, sahneye ekleme)
+                    let g = askerYarat3D(t.tip, true);
+                    g.position.set(x, 0.7, z);
+                    scene.add(g);
+                    sahnedekiAskerler.push({
+                        group: g,
+                        tip: t.tip,
+                        hedefX: x,
+                        hedefZ: z,
+                        sayac: 0,
+                        oncekiX: x,
+                        oncekiZ: z,
+                        savasci: true // savaşta olduğunu belirt
+                    });
+                }
+            });
+
+            // Savaş modunu aktif et
+            savasModu = true;
+            document.getElementById('savas-bilgi').style.display = 'block';
+            document.getElementById('savas-durum').innerText = '⚔️ Savaş başladı! Düşman binalarını yok et!';
+            // UI panelini kapat
+            document.getElementById('main-panel').style.display = 'none';
+            uiKilitle(false);
         }
 
-        function saldirBina(id) {
-            let bina = dusmanBinalari[id];
-            if (!bina || bina.can <= 0) return alert('Bu bina zaten yıkıldı!');
+        function koyeDon() {
+            if (!savasModu) return;
+            // Savaş modunu kapat, köyü geri yükle
+            savasModu = false;
+            document.getElementById('savas-bilgi').style.display = 'none';
+            // Sahneyi temizle
+            sahnedekiBinalar.forEach(b => scene.remove(b.group));
+            sahnedekiBinalar = [];
+            sahnedekiAskerler.forEach(a => scene.remove(a.group));
+            sahnedekiAskerler = [];
+            dusmanBinalari = [];
+            // Köy binalarını geri yükle
+            if (koyBinalari) {
+                koyBinalari.forEach(b => {
+                    binaKoySahnede3D(b.type, b.x, b.z, false);
+                });
+            }
+            // Belediye ve depoları yeniden oluştur (binaKoySahnede3D ile eklenmediyseler)
+            // Onlar zaten koyBinalari'nda yok, manuel ekle
+            // Basitçe başlangıçtaki gibi ekleyelim
+            const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.6 }));
+            binaGovde.position.y = 1.25; scene.add(binaGovde);
+            const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6 }));
+            cati.position.y = 3.4; cati.rotation.y = Math.PI / 4; scene.add(cati);
+            const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: tAltin, roughness: 0.4 }));
+            altinKup.position.set(-6, 0.75, -6); scene.add(altinKup);
+            const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: tIksir, roughness: 0.4 }));
+            iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
+            // Askerleri geri yükle (sadece görsel, oyuncu.troops'dan)
+            if (oyuncu.troops) {
+                let savasciSayisi = oyuncu.troops.savasci || 0;
+                for (let i = 0; i < savasciSayisi; i++) {
+                    let g = askerYarat3D('savasci', true);
+                    let rAci = Math.random() * Math.PI * 2;
+                    let rUzaklik = 4 + Math.random() * 3;
+                    g.position.set(Math.cos(rAci)*rUzaklik, 3.5, Math.sin(rAci)*rUzaklik);
+                    scene.add(g);
+                    sahnedekiAskerler.push({ group: g, tip: 'savasci', hedefX: g.position.x, hedefZ: g.position.z, sayac: 0, oncekiX: g.position.x, oncekiZ: g.position.z });
+                }
+                let okcuSayisi = oyuncu.troops.okcu || 0;
+                for (let i = 0; i < okcuSayisi; i++) {
+                    let g = askerYarat3D('okcu', true);
+                    let rAci = Math.random() * Math.PI * 2;
+                    let rUzaklik = 4 + Math.random() * 3;
+                    g.position.set(Math.cos(rAci)*rUzaklik, 2.1, Math.sin(rAci)*rUzaklik);
+                    scene.add(g);
+                    sahnedekiAskerler.push({ group: g, tip: 'okcu', hedefX: g.position.x, hedefZ: g.position.z, sayac: 0, oncekiX: g.position.x, oncekiZ: g.position.z });
+                }
+            }
+            // UI'ı göster
+            document.getElementById('main-panel').style.display = 'block';
+            uiKilitle(false);
+        }
+
+        // Düşman binasına tıklama (sadece savaş modunda)
+        function binaTiklandi(bina) {
+            if (!savasModu) return;
+            if (!bina || bina.can <= 0) return;
+            // Hasar ver
             let toplamAsker = takim.reduce((a, b) => a + b.adet, 0);
             let hasar = Math.floor(Math.random() * 20) + 5 + toplamAsker * 2;
             bina.can -= hasar;
             if (bina.can < 0) bina.can = 0;
-            let el = document.getElementById(`bina-${id}`);
-            let canClass = bina.can > 70 ? '' : (bina.can > 40 ? 'orta' : 'dusuk');
-            el.querySelector('.can').className = `can ${canClass}`;
-            el.querySelector('.can').innerText = `❤️ ${bina.can} / ${bina.maxCan}`;
+            // Binanın rengini güncelle (can durumuna göre)
+            let mesh = bina.group.children[0];
+            if (mesh) {
+                let renk = bina.can > 70 ? 0x00ff00 : (bina.can > 40 ? 0xffff00 : 0xff0000);
+                mesh.material.color.setHex(renk);
+            }
             if (bina.can <= 0) {
-                el.style.borderColor = '#e74c3c';
-                el.querySelector('button').disabled = true;
-                el.querySelector('button').innerText = '❌ Yıkıldı';
+                // Bina yıkıldı
                 savasPuani += 20;
                 document.getElementById('savas-puan').innerText = savasPuani;
+                document.getElementById('savas-durum').innerText = `💥 Bir bina yıkıldı! +20 puan`;
+                // Binayı yok et
+                scene.remove(bina.group);
+                // Listeden çıkar
+                let idx = dusmanBinalari.indexOf(bina);
+                if (idx > -1) dusmanBinalari.splice(idx, 1);
+                // Tüm binalar yıkıldı mı?
+                if (dusmanBinalari.length === 0) {
+                    savasPuani += 50;
+                    document.getElementById('savas-puan').innerText = savasPuani;
+                    document.getElementById('savas-durum').innerText = '🏆 ZAFER! Tüm binalar yıkıldı! 5 saniye sonra köye dönülecek.';
+                    setTimeout(() => { koyeDon(); }, 5000);
+                }
+            } else {
+                document.getElementById('savas-durum').innerText = `⚔️ ${hasar} hasar verildi! Kalan can: ${bina.can}`;
             }
-            let hepsiYikildi = dusmanBinalari.every(b => b.can <= 0);
-            if (hepsiYikildi) {
-                alert('🏆 TÜM BİNALAR YIKILDI! ZAFER!');
-                savasPuani += 50;
-                document.getElementById('savas-puan').innerText = savasPuani;
-            }
-        }
-
-        function saldir() {
-            let ayakta = dusmanBinalari.filter(b => b.can > 0);
-            if (ayakta.length === 0) return alert('Saldıracak bina yok!');
-            ayakta.forEach(b => {
-                let id = dusmanBinalari.indexOf(b);
-                saldirBina(id);
-            });
-        }
-
-        function savasKapat() {
-            document.getElementById('savas-harita').style.display = 'none';
-            uiKilitle(false);
         }
 
         // =========================================================
-        // MEVCUT FONKSİYONLAR (Değişenler işaretli)
+        // MEVCUT FONKSİYONLAR (değiştirilenler işaretli)
         // =========================================================
-        function uiKilitle(durum) {
-            uiTiklamaKilidi = durum;
-        }
+        function uiKilitle(durum) { uiTiklamaKilidi = durum; }
 
         function binalarinFiyatiniBul(tip) {
             if(tip === 'kanon') return { bedel: 600, tip: 'gold' };
@@ -559,6 +607,7 @@
 
         function toggleMenu(e) {
             if(e) e.stopPropagation();
+            if (savasModu) return; // savaşta menü açılamaz
             const panel = document.getElementById('main-panel');
             panel.style.display = (panel.style.display === "block") ? "none" : "block";
             if(panel.style.display === "block") uiKilitle(true);
@@ -566,6 +615,7 @@
         }
 
         function switchTab(tab) {
+            if (savasModu) return;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('shop-section').style.display = 'none';
             document.getElementById('chat-section').style.display = 'none';
@@ -582,7 +632,7 @@
                 document.getElementById('btn-savas').classList.add('active');
                 document.getElementById('savas-section').style.display = 'flex';
                 document.getElementById('savas-puan').innerText = savasPuani;
-                takimGuncelleUI(); // takım özetini güncelle
+                takimGuncelleUI();
             }
         }
 
@@ -619,11 +669,21 @@
                 if(oyuncu.troops) {
                     let savasciSayisi = oyuncu.troops.savasci || 0;
                     for(let i=0; i<savasciSayisi; i++) {
-                        askerYarat3D('savasci');
+                        let g = askerYarat3D('savasci', true);
+                        let rAci = Math.random() * Math.PI * 2;
+                        let rUzaklik = 4 + Math.random() * 3;
+                        g.position.set(Math.cos(rAci)*rUzaklik, 3.5, Math.sin(rAci)*rUzaklik);
+                        scene.add(g);
+                        sahnedekiAskerler.push({ group: g, tip: 'savasci', hedefX: g.position.x, hedefZ: g.position.z, sayac: 0, oncekiX: g.position.x, oncekiZ: g.position.z });
                     }
                     let okcuSayisi = oyuncu.troops.okcu || 0;
                     for(let i=0; i<okcuSayisi; i++) {
-                        askerYarat3D('okcu');
+                        let g = askerYarat3D('okcu', true);
+                        let rAci = Math.random() * Math.PI * 2;
+                        let rUzaklik = 4 + Math.random() * 3;
+                        g.position.set(Math.cos(rAci)*rUzaklik, 2.1, Math.sin(rAci)*rUzaklik);
+                        scene.add(g);
+                        sahnedekiAskerler.push({ group: g, tip: 'okcu', hedefX: g.position.x, hedefZ: g.position.z, sayac: 0, oncekiX: g.position.x, oncekiZ: g.position.z });
                     }
                 }
                 
@@ -659,11 +719,18 @@
             
             uiGuncelle();
             koyuKaliciKaydet();
-            askerYarat3D(tip);
+            // Sahneye ekle
+            let g = askerYarat3D(tip, true);
+            let rAci = Math.random() * Math.PI * 2;
+            let rUzaklik = 4 + Math.random() * 3;
+            let y = (tip === 'savasci') ? 3.5 : (tip === 'okcu') ? 2.1 : 0.7;
+            g.position.set(Math.cos(rAci)*rUzaklik, y, Math.sin(rAci)*rUzaklik);
+            scene.add(g);
+            sahnedekiAskerler.push({ group: g, tip: tip, hedefX: g.position.x, hedefZ: g.position.z, sayac: 0, oncekiX: g.position.x, oncekiZ: g.position.z });
         }
 
-        // ============ KRAL OLUŞTUR (2D) ============
-        function askerYarat3D(tip) {
+        // askerYarat3D artık sahneye eklemiyor, sadece grup döndürüyor.
+        function askerYarat3D(tip, sadeceGrup = false) {
             let askerGroup = new THREE.Group();
 
             if(tip === 'savasci') {
@@ -672,61 +739,38 @@
                 let onMesh = new THREE.Mesh(onGeo, onMat);
                 onMesh.position.z = 0.01;
                 askerGroup.add(onMesh);
-
                 let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let arkaMat = new THREE.MeshStandardMaterial({ map: tKralArka, transparent: true, side: THREE.FrontSide });
                 let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
                 arkaMesh.rotation.y = Math.PI;
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
-
                 askerGroup.scale.set(5, 5, 5);
-                askerGroup.position.y = 3.5;
-
             } else if(tip === 'okcu') {
                 let onGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let onMat = new THREE.MeshStandardMaterial({ map: tOkcuOn, transparent: true, side: THREE.FrontSide });
                 let onMesh = new THREE.Mesh(onGeo, onMat);
                 onMesh.position.z = 0.01;
                 askerGroup.add(onMesh);
-
                 let arkaGeo = new THREE.PlaneGeometry(0.8, 1.4);
                 let arkaMat = new THREE.MeshStandardMaterial({ map: tOkcuArka, transparent: true, side: THREE.FrontSide });
                 let arkaMesh = new THREE.Mesh(arkaGeo, arkaMat);
                 arkaMesh.rotation.y = Math.PI;
                 arkaMesh.position.z = -0.01;
                 askerGroup.add(arkaMesh);
-
                 askerGroup.scale.set(3, 3, 3);
-                askerGroup.position.y = 2.1;
-
             } else {
                 let renk = 0xf1c40f;
                 let k = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: renk }));
                 askerGroup.add(k);
-                askerGroup.position.y = 0.7;
             }
-
-            let rAci = Math.random() * Math.PI * 2;
-            let rUzaklik = 4 + Math.random() * 3;
-            askerGroup.position.x = Math.cos(rAci) * rUzaklik;
-            askerGroup.position.z = Math.sin(rAci) * rUzaklik;
-            
-            scene.add(askerGroup);
-            sahnedekiAskerler.push({ 
-                group: askerGroup, 
-                tip: tip, 
-                hedefX: askerGroup.position.x, 
-                hedefZ: askerGroup.position.z, 
-                sayac: 0,
-                oncekiX: askerGroup.position.x,
-                oncekiZ: askerGroup.position.z
-            });
+            return askerGroup;
         }
 
         // ============ BİNA SEÇME ============
         function secBina(tip, bedel, paraTipi, e) {
             if(e) e.stopPropagation();
+            if (savasModu) return;
             if(paraTipi === 'gold' && oyuncu.gold < bedel) return alert("Yetersiz Altın!");
             if(paraTipi === 'elixir' && oyuncu.elixir < bedel) return alert("Yetersiz İksir!");
             
@@ -745,6 +789,7 @@
 
         function yikimModunuAc(e) {
             if(e) e.stopPropagation();
+            if (savasModu) return;
             insaatModu = false;
             if(geciciMesh) { scene.remove(geciciMesh); geciciMesh = null; }
             document.getElementById('confirm-panel').style.display = 'none';
@@ -758,7 +803,7 @@
         }
 
         // =========================================================
-        // HARİTA TIKLAMA (Kulübe tıklama KALDIRILDI)
+        // HARİTA TIKLAMA (Savaş modunda bina tıklama eklendi)
         // =========================================================
         function haritayaTiklandi(clientX, clientY) {
             if(uiTiklamaKilidi) return;
@@ -767,6 +812,31 @@
             mouse.y = -(clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
+            // SAVAŞ MODUNDA BİNA TIKLAMA
+            if (savasModu) {
+                let kontrolListesi = [];
+                sahnedekiBinalar.forEach(b => {
+                    b.group.children.forEach(c => {
+                        c.userDataParent = b;
+                        kontrolListesi.push(c);
+                    });
+                });
+                const vuruslar = raycaster.intersectObjects(kontrolListesi);
+                if (vuruslar.length > 0) {
+                    let bina = vuruslar[0].object.userDataParent;
+                    if (bina) {
+                        // Bu binanın düşman binası olup olmadığını kontrol et
+                        let d = dusmanBinalari.find(db => db.x === bina.x && db.z === bina.z);
+                        if (d) {
+                            binaTiklandi(d);
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // NORMAL MOD
             if(yikimModu) {
                 let kontrolListesi = [];
                 sahnedekiBinalar.forEach(b => {
@@ -799,7 +869,6 @@
                 return;
             }
 
-            // ---- İNŞAAT MODU (Kulübe tıklama kaldırıldı) ----
             if(insaatModu) {
                 const intersections = raycaster.intersectObject(zeminMesh);
                 if (intersections.length > 0) {
@@ -982,16 +1051,14 @@
             gridHelper.visible = false; 
             scene.add(gridHelper);
 
-            // BELEDİYE BİNASI
+            // BELEDİYE BİNASI (manuel ekle)
             const binaGovde = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), new THREE.MeshStandardMaterial({ map: tDuvar, roughness: 0.6 }));
             binaGovde.position.y = 1.25; scene.add(binaGovde);
             const cati = new THREE.Mesh(new THREE.ConeGeometry(3, 1.8, 4), new THREE.MeshStandardMaterial({ map: tCati, roughness: 0.6 }));
             cati.position.y = 3.4; cati.rotation.y = Math.PI / 4; scene.add(cati);
-
             // DEPOLAR
             const altinKup = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.MeshStandardMaterial({ map: tAltin, roughness: 0.4 }));
             altinKup.position.set(-6, 0.75, -6); scene.add(altinKup);
-            
             const iksirSilindir = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.8, 16), new THREE.MeshStandardMaterial({ map: tIksir, roughness: 0.4 }));
             iksirSilindir.position.set(6, 0.9, -6); scene.add(iksirSilindir);
 
@@ -1009,7 +1076,7 @@
             window.addEventListener('mouseup', (e) => {
                 if (uiTiklamaKilidi) { tiklandi = false; return; }
                 tiklandi = false;
-                if (!suruklendiMi && (insaatModu || yikimModu)) {
+                if (!suruklendiMi && (insaatModu || yikimModu || savasModu)) {
                     haritayaTiklandi(e.clientX, e.clientY);
                 }
             });
@@ -1036,7 +1103,7 @@
             window.addEventListener('touchend', (e) => { 
                 if (uiTiklamaKilidi) { tiklandi = false; return; }
                 tiklandi = false;
-                if (!suruklendiMi && (insaatModu || yikimModu) && e.changedTouches.length > 0) {
+                if (!suruklendiMi && (insaatModu || yikimModu || savasModu) && e.changedTouches.length > 0) {
                     haritayaTiklandi(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
                 }
             });
@@ -1061,28 +1128,75 @@
             function renderDongusu() {
                 requestAnimationFrame(renderDongusu);
 
-                sahnedekiAskerler.forEach(asker => {
-                    let dx = asker.group.position.x - asker.oncekiX;
-                    let dz = asker.group.position.z - asker.oncekiZ;
-                    
-                    if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
-                        let aci = Math.atan2(dx, dz);
-                        asker.group.rotation.y = aci;
-                    }
-                    
-                    asker.oncekiX = asker.group.position.x;
-                    asker.oncekiZ = asker.group.position.z;
-
-                    asker.sayac++;
-                    if(asker.sayac % 120 === 0) { 
-                        asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
-                        asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
-                        if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
-                        if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
-                    }
-                    asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
-                    asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
-                });
+                // Asker hareketleri (savaş modunda düşmana doğru yönelme)
+                if (savasModu && dusmanBinalari.length > 0) {
+                    sahnedekiAskerler.forEach(asker => {
+                        if (asker.savasci) {
+                            // En yakın düşman binasına yönel
+                            let hedef = null;
+                            let minMesafe = Infinity;
+                            dusmanBinalari.forEach(b => {
+                                let dx = b.x - asker.group.position.x;
+                                let dz = b.z - asker.group.position.z;
+                                let mesafe = dx*dx + dz*dz;
+                                if (mesafe < minMesafe) {
+                                    minMesafe = mesafe;
+                                    hedef = b;
+                                }
+                            });
+                            if (hedef) {
+                                let dx = hedef.x - asker.group.position.x;
+                                let dz = hedef.z - asker.group.position.z;
+                                let aci = Math.atan2(dx, dz);
+                                asker.group.rotation.y = aci;
+                                // Yavaşça yaklaş
+                                asker.group.position.x += dx * 0.01;
+                                asker.group.position.z += dz * 0.01;
+                            }
+                        } else {
+                            // Normal devriye
+                            let dx = asker.group.position.x - asker.oncekiX;
+                            let dz = asker.group.position.z - asker.oncekiZ;
+                            if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
+                                let aci = Math.atan2(dx, dz);
+                                asker.group.rotation.y = aci;
+                            }
+                            asker.oncekiX = asker.group.position.x;
+                            asker.oncekiZ = asker.group.position.z;
+                            asker.sayac++;
+                            if(asker.sayac % 120 === 0) { 
+                                asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
+                                asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
+                                if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
+                                if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
+                            }
+                            asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
+                            asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
+                        }
+                    });
+                } else {
+                    // Normal modda devriye
+                    sahnedekiAskerler.forEach(asker => {
+                        if (asker.savasci) return;
+                        let dx = asker.group.position.x - asker.oncekiX;
+                        let dz = asker.group.position.z - asker.oncekiZ;
+                        if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
+                            let aci = Math.atan2(dx, dz);
+                            asker.group.rotation.y = aci;
+                        }
+                        asker.oncekiX = asker.group.position.x;
+                        asker.oncekiZ = asker.group.position.z;
+                        asker.sayac++;
+                        if(asker.sayac % 120 === 0) { 
+                            asker.hedefX = asker.group.position.x + (Math.random() - 0.5) * 2;
+                            asker.hedefZ = asker.group.position.z + (Math.random() - 0.5) * 2;
+                            if(Math.abs(asker.hedefX) > 10) asker.hedefX = 0;
+                            if(Math.abs(asker.hedefZ) > 10) asker.hedefZ = 0;
+                        }
+                        asker.group.position.x += (asker.hedefX - asker.group.position.x) * 0.02;
+                        asker.group.position.z += (asker.hedefZ - asker.group.position.z) * 0.02;
+                    });
+                }
 
                 renderer.render(scene, camera);
             }
