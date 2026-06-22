@@ -69,9 +69,10 @@
             height: 200px;
             text-align: center;
             color: #ccc;
+            gap: 10px;
         }
-        #savas-section h3 { color: #ff9f43; margin-bottom: 10px; }
-        #savas-section p { font-size: 14px; line-height: 1.6; }
+        #savas-section h3 { color: #ff9f43; margin-bottom: 5px; }
+        #savas-section p { font-size: 14px; line-height: 1.6; margin: 5px 0; }
         .savas-buton {
             background: #e74c3c;
             border: none;
@@ -81,10 +82,21 @@
             font-weight: bold;
             font-size: 18px;
             cursor: pointer;
-            margin-top: 15px;
             transition: 0.2s;
         }
         .savas-buton:hover { background: #c0392b; transform: scale(1.05); }
+        .takim-sec-buton {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .takim-sec-buton:hover { background: #2980b9; }
 
         #build-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(44, 62, 80, 0.95); padding: 10px 20px; border-radius: 20px; font-weight: bold; border: 2px solid #ff9f43; display: none; z-index: 10; pointer-events: none; }
         
@@ -151,7 +163,7 @@
             margin-top: 10px;
         }
 
-        /* ===== SAVAŞ HARİTASI (geçici) ===== */
+        /* ===== SAVAŞ HARİTASI ===== */
         #savas-harita {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -298,10 +310,11 @@
 
         <div id="savas-section">
             <h3>⚔️ SAVAŞ MODU</h3>
-            <p>Düşman köylerine saldırıp zafer kazan!</p>
+            <p>Düşman köylerine saldırmak için önce takımını seç!</p>
+            <button class="takim-sec-buton" onclick="takimSecModalAc()">👥 Takım Seç</button>
+            <div id="takim-ozet" style="font-size:13px; color:#aaa; margin:5px 0;">Seçili takım: <span id="secili-takim-goster">-</span></div>
             <p>🏆 Savaş puanı: <span id="savas-puan" style="color:#ff9f43;">0</span></p>
             <button class="savas-buton" onclick="savasBaslat()">🚀 Savaşa Gir!</button>
-            <p style="font-size:12px; color:#888; margin-top:8px;">(Rastgele düşman köyü oluşur, binaları yok et!)</p>
         </div>
     </div>
 
@@ -322,7 +335,7 @@
         </div>
     </div>
 
-    <!-- ===== SAVAŞ HARİTASI (geçici HTML) ===== -->
+    <!-- ===== SAVAŞ HARİTASI ===== -->
     <div id="savas-harita">
         <button class="kapat-savas" onclick="savasKapat()">✖ Kapat</button>
         <h2 style="text-align:center;">⚔️ DÜŞMAN KÖYÜ</h2>
@@ -334,7 +347,7 @@
 
     <script>
         // =========================================================
-        // MEVCUT KODLAR (Değişmeyen kısımlar)
+        // MEVCUT KODLAR
         // =========================================================
         let oyuncu = null;
         let scene = null, camera = null, renderer = null, zeminMesh = null, gridHelper = null;
@@ -395,7 +408,6 @@
                 alert(`En fazla ${TAKIM_LIMIT} asker seçebilirsin!`);
                 return;
             }
-            // Var olan gruba ekle veya yeni grup oluştur
             let grup = takim.find(t => t.tip === tip);
             if (grup) {
                 grup.adet += 1;
@@ -410,7 +422,9 @@
             document.getElementById('takim-durum').innerText = `${toplam} / ${TAKIM_LIMIT} asker seçildi`;
             let list = takim.map(t => `${t.adet} ${t.tip}`).join(', ') || '-';
             document.getElementById('takim-listesi').innerText = list;
-            // Butonları güncelle (doluysa disable)
+            // Ana paneldeki özet
+            document.getElementById('secili-takim-goster').innerText = list;
+            // Butonları güncelle
             document.querySelectorAll('.takim-secim button').forEach(btn => {
                 let tip = btn.innerText.includes('Kral') ? 'savasci' : btn.innerText.includes('Okçu') ? 'okcu' : 'barbar';
                 let mevcut = takim.filter(t => t.tip === tip).reduce((a, b) => a + b.adet, 0);
@@ -423,12 +437,14 @@
             uiKilitle(false);
         }
 
-        // Asker kulübesine tıklama olayı (haritada tıklama ile tetiklenir)
-        function kulubeTiklandi(bina) {
-            if (bina.type !== 'kisla') return;
-            if (takim.length === 0) {
-                // Varsayılan olarak 1 Kral ekleyelim
-                takimEkle('savasci', 1);
+        // Yeni: Takım seç modalını aç, asker kulübesi kontrolü yap
+        function takimSecModalAc() {
+            if (!oyuncu) return alert('Önce giriş yap!');
+            // Asker kulübesi var mı kontrol et
+            let kulubeVar = oyuncu.buildings && oyuncu.buildings.some(b => b.type === 'kisla');
+            if (!kulubeVar) {
+                alert('⚠️ Önce Asker Kulübesi inşa et! (Dükkandan satın al)');
+                return;
             }
             document.getElementById('takim-modal').style.display = 'flex';
             uiKilitle(true);
@@ -443,6 +459,11 @@
 
         function savasBaslat() {
             if (!oyuncu) return alert('Önce giriş yap!');
+            let toplamAsker = takim.reduce((a, b) => a + b.adet, 0);
+            if (toplamAsker === 0) {
+                alert('Önce takım seç! (Savaş sekmesindeki "Takım Seç" butonuna tıkla)');
+                return;
+            }
             // Rastgele düşman köyü oluştur
             const binaTipleri = ['kanon', 'kisla', 'duvar'];
             const isimler = ['Havan', 'Kulübe', 'Duvar'];
@@ -479,13 +500,10 @@
         function saldirBina(id) {
             let bina = dusmanBinalari[id];
             if (!bina || bina.can <= 0) return alert('Bu bina zaten yıkıldı!');
-            // Rastgele hasar (takımdaki asker sayısına göre)
             let toplamAsker = takim.reduce((a, b) => a + b.adet, 0);
-            if (toplamAsker === 0) return alert('Önce takım seç! (Asker Kulübesine tıkla)');
             let hasar = Math.floor(Math.random() * 20) + 5 + toplamAsker * 2;
             bina.can -= hasar;
             if (bina.can < 0) bina.can = 0;
-            // UI güncelle
             let el = document.getElementById(`bina-${id}`);
             let canClass = bina.can > 70 ? '' : (bina.can > 40 ? 'orta' : 'dusuk');
             el.querySelector('.can').className = `can ${canClass}`;
@@ -497,7 +515,6 @@
                 savasPuani += 20;
                 document.getElementById('savas-puan').innerText = savasPuani;
             }
-            // Tüm binalar yıkıldı mı?
             let hepsiYikildi = dusmanBinalari.every(b => b.can <= 0);
             if (hepsiYikildi) {
                 alert('🏆 TÜM BİNALAR YIKILDI! ZAFER!');
@@ -507,7 +524,6 @@
         }
 
         function saldir() {
-            // Tüm ayakta kalan binalara saldır (otomatik)
             let ayakta = dusmanBinalari.filter(b => b.can > 0);
             if (ayakta.length === 0) return alert('Saldıracak bina yok!');
             ayakta.forEach(b => {
@@ -566,6 +582,7 @@
                 document.getElementById('btn-savas').classList.add('active');
                 document.getElementById('savas-section').style.display = 'flex';
                 document.getElementById('savas-puan').innerText = savasPuani;
+                takimGuncelleUI(); // takım özetini güncelle
             }
         }
 
@@ -741,7 +758,7 @@
         }
 
         // =========================================================
-        // HARİTA TIKLAMA (DÜZENLENDI - KULÜBE TIKLAMASI EKLENDI)
+        // HARİTA TIKLAMA (Kulübe tıklama KALDIRILDI)
         // =========================================================
         function haritayaTiklandi(clientX, clientY) {
             if(uiTiklamaKilidi) return;
@@ -782,26 +799,7 @@
                 return;
             }
 
-            // ---- ASKER KULÜBESİ TIKLAMA (yeni) ----
-            // Önce binaları kontrol et
-            let binaList = [];
-            sahnedekiBinalar.forEach(b => {
-                b.group.children.forEach(c => {
-                    c.userDataParent = b;
-                    binaList.push(c);
-                });
-            });
-            const vuruslar = raycaster.intersectObjects(binaList);
-            if (vuruslar.length > 0) {
-                let bina = vuruslar[0].object.userDataParent;
-                if (bina && bina.type === 'kisla') {
-                    uiKilitle(true);
-                    kulubeTiklandi(bina);
-                    return;
-                }
-            }
-
-            // ---- İNŞAAT MODU ----
+            // ---- İNŞAAT MODU (Kulübe tıklama kaldırıldı) ----
             if(insaatModu) {
                 const intersections = raycaster.intersectObject(zeminMesh);
                 if (intersections.length > 0) {
@@ -824,7 +822,7 @@
         }
 
         // =========================================================
-        // DİĞER MEVCUT FONKSİYONLAR (binaKoy, chat, kamera, render)
+        // DİĞER MEVCUT FONKSİYONLAR
         // =========================================================
         function insaatiOnayla(e) {
             if(e) { e.stopPropagation(); e.preventDefault(); }
